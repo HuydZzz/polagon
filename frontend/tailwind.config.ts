@@ -47,9 +47,9 @@ const config: Config = {
         warning: "#F59E0B",
       },
       fontFamily: {
-        sans: ["Inter", "system-ui", "sans-serif"],
+        sans: ["'Google Sans'", "Inter", "system-ui", "sans-serif"],
         mono: ["'JetBrains Mono'", "ui-monospace", "monospace"],
-        display: ["'Instrument Serif'", "Georgia", "serif"],
+        display: ["'Google Sans'", "Inter", "system-ui", "sans-serif"],
       },
       borderRadius: {
         sm: "6px",

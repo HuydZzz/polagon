@@ -38,11 +38,12 @@ src/
 
 The mocks let the UI ship today and judges see polish without waiting for a deploy. Each route is built against the same TypeScript surface (`Market`, `UserPosition`) that the live `@polkadot/api-contract` calls will satisfy on D9–D11 — swap is mechanical.
 
-## Design system origin
+## Design system
 
-Palette + typography draw from the user's REALIO DEX system in `~/.claude/projects/-Users-mac/memory/`:
-purple-blue gradients, Instrument Serif for display, Inter for UI, JetBrains Mono for numbers. We pin
-brand around `#7C3AED` (electric purple) with `#3B82F6` (portal blue) as a quiet second voice.
+Palette + typography:
+- **Brand:** electric purple `#7C3AED` with portal blue `#3B82F6` as a quiet second voice.
+- **Type:** Google Sans for both display and UI, Inter as a system fallback, JetBrains Mono for numbers and addresses.
+- **Surfaces:** layered dark — `#0A0A0F` background → `#13131C` subtle → `#1A1A26` card → `#22222F` elevated.
 
 ## Roadmap milestones
 
