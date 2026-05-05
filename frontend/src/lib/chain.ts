@@ -8,7 +8,7 @@
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ContractPromise } from "@polkadot/api-contract";
-import { env, isChainWired } from "./env";
+import { env, isChainWired, isPollsWired } from "./env";
 
 let apiSingleton: Promise<ApiPromise> | undefined;
 
@@ -21,6 +21,7 @@ export function getApi(): Promise<ApiPromise> {
 
 let pmContract: ContractPromise | undefined;
 let repContract: ContractPromise | undefined;
+let pollsContract: ContractPromise | undefined;
 
 async function loadAbi(name: string): Promise<unknown | undefined> {
   // ABIs are written to `lib/abi/` by `make deploy`. Before then, the import
@@ -51,6 +52,16 @@ export async function getReputation(): Promise<ContractPromise | undefined> {
   const api = await getApi();
   repContract = new ContractPromise(api, abi as never, env.reputationAddress);
   return repContract;
+}
+
+export async function getPolls(): Promise<ContractPromise | undefined> {
+  if (!isPollsWired) return undefined;
+  if (pollsContract) return pollsContract;
+  const abi = await loadAbi("polls");
+  if (!abi) return undefined;
+  const api = await getApi();
+  pollsContract = new ContractPromise(api, abi as never, env.pollsAddress);
+  return pollsContract;
 }
 
 /** Default gas budget used for read calls. Reads don't actually charge it. */

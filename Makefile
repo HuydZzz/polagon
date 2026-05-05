@@ -27,6 +27,7 @@ install:
 build-contracts:
 	cd contracts/prediction_market && cargo contract build --release
 	cd contracts/reputation         && cargo contract build --release
+	cd contracts/polls              && cargo contract build --release
 
 test-contracts:
 	cd contracts && cargo test --workspace --features std
@@ -55,4 +56,5 @@ fmt:
 clean:
 	cd contracts/prediction_market && cargo clean
 	cd contracts/reputation         && cargo clean
+	cd contracts/polls              && cargo clean
 	rm -rf frontend/.next frontend/node_modules scripts/node_modules

@@ -18,9 +18,12 @@ contracts/
 ├── prediction_market/
 │   ├── Cargo.toml
 │   └── lib.rs                 # MarketFactory + Market in one contract (single-contract pattern)
-└── reputation/
+├── reputation/
+│   ├── Cargo.toml
+│   └── lib.rs                 # PolagonScore (soulbound)
+└── polls/
     ├── Cargo.toml
-    └── lib.rs                 # PolagonScore (soulbound)
+    └── lib.rs                 # community polls (no money, gas only)
 ```
 
 We chose the **single-contract factory** pattern (markets indexed by `u64`) over **per-market contract instantiation** because:

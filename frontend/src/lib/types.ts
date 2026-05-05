@@ -37,3 +37,18 @@ export interface ReputationStats {
   score: number;
   accuracyBps: number;
 }
+
+export type PollStatus = "Open" | "Closed";
+
+export interface Poll {
+  id: number;
+  question: string;
+  options: string[];
+  creator: string;
+  endTime: number;
+  votesPerOption: number[];
+  totalVoters: number;
+  status: PollStatus;
+  createdAt: number;
+  category: string;
+}

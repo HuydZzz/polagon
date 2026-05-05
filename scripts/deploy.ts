@@ -161,6 +161,7 @@ async function main() {
 
   const predictionMarket = loadArtifact("prediction_market");
   const reputation = loadArtifact("reputation");
+  const polls = loadArtifact("polls");
 
   // 1. Reputation first (no constructor args).
   const repContract = await deployContract(api, signer, reputation, [], "reputation");
@@ -174,15 +175,20 @@ async function main() {
     "prediction_market",
   );
 
-  // 3. Wire them.
+  // 3. Polls (no constructor args).
+  const pollsContract = await deployContract(api, signer, polls, [], "polls");
+
+  // 4. Wire them.
   await call(pmContract, signer, "setReputation", [repContract.address.toString()], "prediction_market.set_reputation");
   await call(repContract, signer, "setMarketAuthority", [pmContract.address.toString()], "reputation.set_market_authority");
+  await call(pollsContract, signer, "setReputation", [repContract.address.toString()], "polls.set_reputation");
 
-  // 4. Persist artifacts for the frontend.
+  // 5. Persist artifacts for the frontend.
   const abiDir = resolve(ROOT, "frontend", "src", "lib", "abi");
   mkdirSync(abiDir, { recursive: true });
   writeFileSync(resolve(abiDir, "prediction_market.json"), JSON.stringify(predictionMarket.abiJson, null, 2));
   writeFileSync(resolve(abiDir, "reputation.json"), JSON.stringify(reputation.abiJson, null, 2));
+  writeFileSync(resolve(abiDir, "polls.json"), JSON.stringify(polls.abiJson, null, 2));
 
   // 5. Write addresses to frontend/.env.local — preserve any pre-existing keys.
   const envPath = resolve(ROOT, "frontend", ".env.local");
@@ -195,6 +201,7 @@ async function main() {
   lines.set("NEXT_PUBLIC_RPC_URL", RPC_URL);
   lines.set("NEXT_PUBLIC_FACTORY_ADDRESS", pmContract.address.toString());
   lines.set("NEXT_PUBLIC_REPUTATION_ADDRESS", repContract.address.toString());
+  lines.set("NEXT_PUBLIC_POLLS_ADDRESS", pollsContract.address.toString());
   lines.set("NEXT_PUBLIC_NATIVE_SYMBOL", "POT");
   lines.set("NEXT_PUBLIC_NATIVE_DECIMALS", "12");
   writeFileSync(envPath, [...lines].map(([k, v]) => `${k}=${v}`).join("\n") + "\n");
@@ -202,6 +209,7 @@ async function main() {
   console.log("\n[deploy] done.");
   console.log(`  prediction_market: ${pmContract.address.toString()}`);
   console.log(`  reputation:        ${repContract.address.toString()}`);
+  console.log(`  polls:             ${pollsContract.address.toString()}`);
   console.log(`  frontend env:      ${envPath}`);
 
   await api.disconnect();

@@ -11,13 +11,18 @@ import {
   ChainNotWiredError,
   getMarket,
   getMarketCount,
+  getMyVote,
+  getPoll,
+  getPollCount,
   getPosition,
   getReputationStats,
   listMarkets,
+  listPolls,
 } from "./contracts";
-import { isChainWired } from "./env";
+import { isChainWired, isPollsWired } from "./env";
 import { MOCK_MARKETS } from "./markets-mock";
-import type { Market, ReputationStats, UserPosition } from "./types";
+import { MOCK_POLLS } from "./polls-mock";
+import type { Market, Poll, ReputationStats, UserPosition } from "./types";
 
 const REFRESH_MS = 12_000;
 
@@ -124,6 +129,99 @@ export function usePosition(
     refresh: () => void swr.mutate(),
   };
 }
+
+/* --------------------------------- polls --------------------------------- */
+
+export function usePolls(): ChainAware<Poll[]> {
+  const swr = useSWR<Poll[]>(
+    "polagon:polls",
+    async () => {
+      if (!isPollsWired) throw new ChainNotWiredError();
+      const count = await getPollCount();
+      return listPolls(0, Math.max(count, 1));
+    },
+    { refreshInterval: REFRESH_MS },
+  );
+  if (swr.error instanceof ChainNotWiredError || (swr.error && !isPollsWired)) {
+    return {
+      data: MOCK_POLLS,
+      isLoading: false,
+      error: undefined,
+      fromMock: true,
+      refresh: () => void swr.mutate(),
+    };
+  }
+  return {
+    data: swr.data,
+    isLoading: swr.isLoading,
+    error: swr.error as Error | undefined,
+    fromMock: false,
+    refresh: () => void swr.mutate(),
+  };
+}
+
+export function usePoll(id: number | undefined): ChainAware<Poll> {
+  const key = id != null ? ["polagon:poll", id] : null;
+  const swr = useSWR(
+    key,
+    async () => {
+      if (id == null) return undefined;
+      if (!isPollsWired) throw new ChainNotWiredError();
+      return getPoll(id);
+    },
+    { refreshInterval: REFRESH_MS },
+  );
+  if (swr.error instanceof ChainNotWiredError || (swr.error && !isPollsWired)) {
+    return {
+      data: id != null ? MOCK_POLLS.find((p) => p.id === id) : undefined,
+      isLoading: false,
+      error: undefined,
+      fromMock: true,
+      refresh: () => void swr.mutate(),
+    };
+  }
+  return {
+    data: swr.data,
+    isLoading: swr.isLoading,
+    error: swr.error as Error | undefined,
+    fromMock: false,
+    refresh: () => void swr.mutate(),
+  };
+}
+
+export function useMyVote(
+  pollId: number | undefined,
+  who: string | undefined,
+): ChainAware<number | undefined> {
+  const key = pollId != null && who ? ["polagon:my-vote", pollId, who] : null;
+  const swr = useSWR(
+    key,
+    async () => {
+      if (pollId == null || !who) return undefined;
+      if (!isPollsWired) throw new ChainNotWiredError();
+      return getMyVote(pollId, who);
+    },
+    { refreshInterval: REFRESH_MS },
+  );
+  if (swr.error instanceof ChainNotWiredError || (swr.error && !isPollsWired)) {
+    return {
+      data: undefined,
+      isLoading: false,
+      error: undefined,
+      fromMock: true,
+      refresh: () => void swr.mutate(),
+    };
+  }
+  return {
+    data: swr.data,
+    isLoading: swr.isLoading,
+    error: swr.error as Error | undefined,
+    fromMock: false,
+    refresh: () => void swr.mutate(),
+  };
+}
+
+/* ------------------------------- reputation ------------------------------ */
 
 export function useReputation(who: string | undefined): ChainAware<ReputationStats> {
   const key = who ? ["polagon:reputation", who] : null;

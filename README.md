@@ -102,7 +102,8 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed flow diagrams and storage 
 ├── contracts/               # Ink! 5.x smart contracts (Rust)
 │   ├── Cargo.toml           # workspace
 │   ├── prediction_market/   # parimutuel market + factory
-│   └── reputation/          # soulbound Polagon Score
+│   ├── reputation/          # soulbound Polagon Score
+│   └── polls/               # lightweight community polls
 ├── scripts/                 # deploy + seed scripts (TypeScript)
 │   ├── deploy.ts
 │   └── seed.ts
@@ -173,11 +174,11 @@ Active development. The protocol is in MVP stage; deployment to Portaldot testne
 |---|---|
 | `prediction_market` contract | Implemented, unit-tested |
 | `reputation` contract | Implemented, unit-tested |
+| `polls` contract | Implemented, unit-tested |
 | Cross-contract wiring | Implemented |
 | End-to-end (`ink_e2e`) tests | In progress |
 | Testnet deployment | In progress |
-| Frontend ↔ chain integration | In progress |
-| Polls layer | Designed, not yet implemented |
+| Frontend ↔ chain integration | Implemented (read + write flows) |
 
 ## Contributing
 

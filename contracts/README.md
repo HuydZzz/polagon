@@ -1,11 +1,12 @@
 # Polagon — Smart Contracts
 
-Two Ink! 5.x contracts:
+Three Ink! 5.x contracts:
 
 | Crate | Purpose |
 |---|---|
 | [`prediction_market`](./prediction_market/) | Single-contract factory + parimutuel market. Stores all markets, positions, claims. |
 | [`reputation`](./reputation/) | Soulbound `PolagonScore` ledger. Only the market contract may write. |
+| [`polls`](./polls/) | Lightweight community polls. No money, no fee — gas only. |
 
 ## Build
 
@@ -17,6 +18,7 @@ cargo install cargo-contract --version "^5" --force
 # from contracts/
 cd prediction_market && cargo contract build --release && cd ..
 cd reputation         && cargo contract build --release && cd ..
+cd polls              && cargo contract build --release && cd ..
 ```
 
 Each build emits `target/ink/<name>.contract` — the artifact you upload to Portaldot.
@@ -33,8 +35,12 @@ Unit tests cover happy paths + every error branch in `prediction_market`, plus t
 
 1. Deploy `reputation` first (no constructor args).
 2. Deploy `prediction_market` with `(fee_recipient, protocol_fee_bps, create_market_fee)` — for testnet the docs suggest `(admin_addr, 200, 1_000_000_000_000)` (= 2% fee + 1 POT to create a market).
-3. Wire them: call `prediction_market.set_reputation(<reputation_addr>)`, then `reputation.set_market_authority(<prediction_market_addr>)`.
-4. Pin both addresses in `frontend/.env.local`.
+3. Deploy `polls` (no constructor args).
+4. Wire them:
+   - `prediction_market.set_reputation(<reputation_addr>)`
+   - `reputation.set_market_authority(<prediction_market_addr>)`
+   - `polls.set_reputation(<reputation_addr>)` (reserved for v2 weighted voting)
+5. Pin all three addresses in `frontend/.env.local`. The `make deploy` script does this automatically.
 
 > See [../ARCHITECTURE.md](../ARCHITECTURE.md) §3–§7 for storage layouts, payout math, and cross-contract call surface.
 

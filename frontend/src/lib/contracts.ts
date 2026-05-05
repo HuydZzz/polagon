@@ -14,9 +14,22 @@ import type { ContractPromise } from "@polkadot/api-contract";
 import type { SubmittableExtrinsic } from "@polkadot/api/types";
 import type { ISubmittableResult } from "@polkadot/types/types";
 import { BN } from "@polkadot/util";
-import { getPredictionMarket, getReputation, writeGas, readGas } from "./chain";
-import { isChainWired } from "./env";
-import type { Market, MarketStatus, ReputationStats, UserPosition } from "./types";
+import {
+  getPolls,
+  getPredictionMarket,
+  getReputation,
+  writeGas,
+  readGas,
+} from "./chain";
+import { isChainWired, isPollsWired } from "./env";
+import type {
+  Market,
+  MarketStatus,
+  Poll,
+  PollStatus,
+  ReputationStats,
+  UserPosition,
+} from "./types";
 
 export class ChainNotWiredError extends Error {
   constructor() {
@@ -198,6 +211,128 @@ export async function txCancel(
   const c = await getPredictionMarket();
   if (!c) throw new ChainNotWiredError();
   return c.tx.cancel(WRITE_OPTS(c.api), marketId);
+}
+
+/* --------------------------------- polls --------------------------------- */
+
+interface RawPoll {
+  id: string | number;
+  question: string;
+  options: string[];
+  creator: { toString(): string } | string;
+  endTime: string | number;
+  votesPerOption: (string | number)[];
+  totalVoters: string | number;
+  status: { toString(): string } | string;
+  createdAt: string | number;
+}
+
+function decodePoll(raw: RawPoll): Poll {
+  const status = asString(raw.status) as PollStatus;
+  const question = asString(raw.question);
+  return {
+    id: asNumber(raw.id),
+    question,
+    options: (raw.options ?? []).map((o) => asString(o)),
+    creator: asString(raw.creator),
+    endTime: asNumber(raw.endTime),
+    votesPerOption: (raw.votesPerOption ?? []).map((v) => asNumber(v)),
+    totalVoters: asNumber(raw.totalVoters),
+    status,
+    createdAt: asNumber(raw.createdAt),
+    category: derivePollCategory(question),
+  };
+}
+
+function derivePollCategory(question: string): string {
+  const q = question.toLowerCase();
+  if (/protocol|fee|governance|grant/.test(q)) return "Governance";
+  if (/score|reputation|brier|streak/.test(q)) return "Reputation";
+  if (/feature|build|next|launch/.test(q)) return "Roadmap";
+  if (/category|featured|curat/.test(q)) return "Curation";
+  return "Community";
+}
+
+export async function getPollCount(): Promise<number> {
+  if (!isPollsWired) throw new ChainNotWiredError();
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  const { result, output } = await c.query.getPollCount(zeroSender(c), READ_OPTS(c.api));
+  if (!result.isOk) throw new Error("getPollCount: query failed");
+  return asNumber(output?.toJSON());
+}
+
+export async function listPolls(start = 0, limit = 50): Promise<Poll[]> {
+  if (!isPollsWired) throw new ChainNotWiredError();
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  const { result, output } = await c.query.listPolls(
+    zeroSender(c),
+    READ_OPTS(c.api),
+    start,
+    limit,
+  );
+  if (!result.isOk) throw new Error("listPolls: query failed");
+  const arr = (output?.toJSON() ?? []) as RawPoll[];
+  return arr.map(decodePoll);
+}
+
+export async function getPoll(id: number): Promise<Poll | undefined> {
+  if (!isPollsWired) throw new ChainNotWiredError();
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  const { result, output } = await c.query.getPoll(zeroSender(c), READ_OPTS(c.api), id);
+  if (!result.isOk) return undefined;
+  const json = output?.toJSON() as RawPoll | null;
+  return json ? decodePoll(json) : undefined;
+}
+
+export async function getMyVote(
+  pollId: number,
+  who: string,
+): Promise<number | undefined> {
+  if (!isPollsWired) throw new ChainNotWiredError();
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  const { result, output } = await c.query.getMyVote(
+    zeroSender(c),
+    READ_OPTS(c.api),
+    pollId,
+    who,
+  );
+  if (!result.isOk) return undefined;
+  const v = output?.toJSON();
+  if (v == null) return undefined;
+  return asNumber(v);
+}
+
+/* --- writes --- */
+
+export async function txCreatePoll(
+  question: string,
+  options: string[],
+  endTime: number,
+): Promise<SubmittableExtrinsic<"promise", ISubmittableResult>> {
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  return c.tx.createPoll(WRITE_OPTS(c.api), question, options, endTime);
+}
+
+export async function txVote(
+  pollId: number,
+  optionIndex: number,
+): Promise<SubmittableExtrinsic<"promise", ISubmittableResult>> {
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  return c.tx.vote(WRITE_OPTS(c.api), pollId, optionIndex);
+}
+
+export async function txClosePoll(
+  pollId: number,
+): Promise<SubmittableExtrinsic<"promise", ISubmittableResult>> {
+  const c = await getPolls();
+  if (!c) throw new ChainNotWiredError();
+  return c.tx.close(WRITE_OPTS(c.api), pollId);
 }
 
 /* ------------------------------- reputation ------------------------------ */
