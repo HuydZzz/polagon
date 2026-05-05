@@ -1,9 +1,15 @@
+"use client";
+
 import Link from "next/link";
+import { motion } from "framer-motion";
+import { MarketsTicker } from "@/components/MarketsTicker";
+import { isChainWired } from "@/lib/env";
 
 export default function Home() {
   return (
     <div className="container-page">
       <Hero />
+      <MarketsTicker />
       <ThreeLayers />
       <NumbersStrip />
       <Cta />
@@ -11,41 +17,71 @@ export default function Home() {
   );
 }
 
+const fadeUp = {
+  hidden: { opacity: 0, y: 16 },
+  visible: { opacity: 1, y: 0 },
+};
+
 function Hero() {
   return (
     <section className="relative pt-20 sm:pt-28">
       <div className="absolute inset-x-0 top-0 -z-10 h-[480px] bg-hex-pattern opacity-60" />
 
-      <div className="flex items-center gap-2 text-xs">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        transition={{ duration: 0.5 }}
+        className="flex items-center gap-2 text-xs"
+      >
         <span className="pill">
           <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse_glow" />
-          Built for Portaldot Mini Hackathon · Season 1
+          {isChainWired ? "Live on Portaldot" : "Mock mode · run `make deploy` to go live"}
         </span>
-      </div>
+      </motion.div>
 
-      <h1 className="mt-6 max-w-3xl font-display text-5xl leading-[1.05] tracking-tight sm:text-7xl">
+      <motion.h1
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        transition={{ duration: 0.55, delay: 0.05 }}
+        className="mt-6 max-w-3xl font-display text-5xl leading-[1.05] tracking-tight sm:text-7xl"
+      >
         Predict. Stake.{" "}
         <span className="bg-gradient-to-r from-brand to-accent bg-clip-text text-transparent">
           Earn reputation
         </span>{" "}
         that follows you.
-      </h1>
+      </motion.h1>
 
-      <p className="mt-6 max-w-2xl text-lg text-text-muted">
-        Polagon turns collective belief into a tradable, on-chain asset — native to
-        Portaldot. Spin up a market in seconds, stake POT on outcomes you trust,
-        and earn a soulbound{" "}
-        <span className="text-text">Polagon Score</span> that proves you saw the future first.
-      </p>
+      <motion.p
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        transition={{ duration: 0.55, delay: 0.12 }}
+        className="mt-6 max-w-2xl text-lg text-text-muted"
+      >
+        Polagon turns collective belief into a tradable, on-chain asset — native
+        to Portaldot. Spin up a market in seconds, stake POT on outcomes you
+        trust, and earn a soulbound{" "}
+        <span className="text-text">Polagon Score</span> that proves you saw the
+        future first.
+      </motion.p>
 
-      <div className="mt-8 flex flex-wrap items-center gap-3">
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        transition={{ duration: 0.55, delay: 0.18 }}
+        className="mt-8 flex flex-wrap items-center gap-3"
+      >
         <Link href="/markets" className="btn-primary">
           Explore markets
         </Link>
         <Link href="/create" className="btn-ghost">
           Create your first market →
         </Link>
-      </div>
+      </motion.div>
 
       <div className="mt-10 flex flex-wrap gap-4 text-xs text-text-dim">
         <span>· Open source under MIT</span>
@@ -61,22 +97,19 @@ function ThreeLayers() {
     {
       title: "Markets",
       tag: "Parimutuel",
-      desc:
-        "Stake POT on YES / NO. No order book, no oracle for time. Pools are split, payouts are proportional. Simple, demoable, fair.",
+      desc: "Stake POT on YES / NO. No order book, no oracle for time. Pools are split, payouts are proportional. Simple, demoable, fair.",
       bullet: "→ create · bet · resolve · claim",
     },
     {
       title: "Polls",
       tag: "Coordination",
-      desc:
-        "Lightweight community polls weighted by reputation, not wallet age. Sybil-resistant. Cheap to deploy. Native to Portaldot DAOs.",
+      desc: "Lightweight community polls weighted by reputation, not wallet age. Sybil-resistant. Cheap to deploy. Native to Portaldot DAOs.",
       bullet: "→ propose · vote · settle",
     },
     {
       title: "Polagon Score",
       tag: "Soulbound",
-      desc:
-        "An on-chain ledger of every prediction outcome. Non-transferable. Composable. The only crypto reputation that grows with calibration.",
+      desc: "An on-chain ledger of every prediction outcome. Non-transferable. Composable. The only crypto reputation that grows with calibration.",
       bullet: "→ accuracy · streak · payouts",
     },
   ];
@@ -87,16 +120,21 @@ function ThreeLayers() {
         Three composable layers, one protocol.
       </h2>
       <p className="mt-3 max-w-2xl text-text-muted">
-        Each layer is useful on its own. Together they form a self-reinforcing loop:
-        accurate predictors win bigger payouts, payouts grow Score, Score weighs more
-        in polls, polls drive market discovery.
+        Each layer is useful on its own. Together they form a self-reinforcing
+        loop: accurate predictors win bigger payouts, payouts grow Score, Score
+        weighs more in polls, polls drive market discovery.
       </p>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-        {layers.map((l) => (
-          <article
+        {layers.map((l, i) => (
+          <motion.article
             key={l.title}
             className="card group relative overflow-hidden p-6 transition hover:border-brand/50"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-10%" }}
+            transition={{ duration: 0.4, delay: 0.05 * i }}
+            whileHover={{ y: -3 }}
           >
             <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand/10 opacity-0 blur-3xl transition group-hover:opacity-100" />
             <div className="relative flex items-center justify-between">
@@ -107,7 +145,7 @@ function ThreeLayers() {
             <p className="relative mt-6 font-mono text-xs text-text-dim">
               {l.bullet}
             </p>
-          </article>
+          </motion.article>
         ))}
       </div>
     </section>
@@ -118,20 +156,27 @@ function NumbersStrip() {
   const stats = [
     { kpi: "$9B+", label: "2024–2025 Polymarket volume" },
     { kpi: "0", label: "prediction primitives shipped on Portaldot — until now" },
-    { kpi: "27d", label: "build window for this hackathon" },
     { kpi: "100%", label: "POT-native: every gas tx, every stake" },
+    { kpi: "MIT", label: "open source, contracts and frontend" },
   ];
 
   return (
     <section className="mt-28 sm:mt-36">
       <div className="card grid grid-cols-2 divide-x divide-border sm:grid-cols-4">
-        {stats.map((s) => (
-          <div key={s.label} className="px-6 py-8">
-            <div className="font-display text-3xl tracking-tight text-text">
+        {stats.map((s, i) => (
+          <motion.div
+            key={s.label}
+            className="px-6 py-8"
+            initial={{ opacity: 0, y: 8 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.35, delay: 0.05 * i }}
+          >
+            <div className="font-display text-3xl tracking-tight tabular-nums text-text">
               {s.kpi}
             </div>
             <div className="mt-2 text-xs text-text-muted">{s.label}</div>
-          </div>
+          </motion.div>
         ))}
       </div>
     </section>
@@ -141,18 +186,21 @@ function NumbersStrip() {
 function Cta() {
   return (
     <section className="mt-28 sm:mt-36">
-      <div className="card relative overflow-hidden p-10 sm:p-14">
+      <motion.div
+        initial={{ opacity: 0, y: 12 }}
+        whileInView={{ opacity: 1, y: 0 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.45 }}
+        className="card relative overflow-hidden p-10 sm:p-14"
+      >
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand/15 via-transparent to-accent/10" />
         <h2 className="font-display text-3xl tracking-tight sm:text-5xl">
           The future is a market. <br />
           On Portaldot, it's Polagon.
         </h2>
         <p className="mt-4 max-w-xl text-text-muted">
-          We're submitting to{" "}
-          <span className="text-text">
-            Portaldot Mini Hackathon Season 1
-          </span>
-          . Demo Day: 2026-05-31 UTC+0. Watch this page.
+          Open source. Native to Portaldot. Built so other dApps can compose on
+          top of the Polagon Score.
         </p>
         <div className="mt-8 flex flex-wrap gap-3">
           <Link href="/markets" className="btn-primary">
@@ -167,7 +215,7 @@ function Cta() {
             Portaldot dev docs ↗
           </a>
         </div>
-      </div>
+      </motion.div>
     </section>
   );
 }

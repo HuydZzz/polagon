@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { ConnectWalletButton } from "./ConnectWalletButton";
+import { ChainBadge } from "./ChainBadge";
 
 const NAV = [
   { href: "/markets", label: "Markets" },
@@ -16,9 +17,7 @@ export function Navbar() {
           <span className="text-base font-semibold tracking-tight">
             Polagon
           </span>
-          <span className="hidden rounded-full border border-border bg-bg-subtle px-2 py-0.5 text-[10px] uppercase tracking-wider text-text-dim sm:inline">
-            on Portaldot
-          </span>
+          <ChainBadge />
         </Link>
 
         <nav className="hidden items-center gap-1 sm:flex">
