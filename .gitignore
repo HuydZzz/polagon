@@ -1,0 +1,38 @@
+# macOS
+.DS_Store
+
+# editors
+.vscode/
+.idea/
+*.swp
+
+# secrets / env
+.env
+.env.local
+.env.*.local
+
+# Rust / Ink!
+target/
+Cargo.lock
+*.contract
+*.wasm
+**/.cargo/
+
+# Node
+node_modules/
+.pnpm-store/
+.pnpm-debug.log
+.next/
+out/
+dist/
+.turbo/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+.next-env.d.ts
+
+# Test / coverage
+coverage/
+.nyc_output/

@@ -1,0 +1,173 @@
+import Link from "next/link";
+
+export default function Home() {
+  return (
+    <div className="container-page">
+      <Hero />
+      <ThreeLayers />
+      <NumbersStrip />
+      <Cta />
+    </div>
+  );
+}
+
+function Hero() {
+  return (
+    <section className="relative pt-20 sm:pt-28">
+      <div className="absolute inset-x-0 top-0 -z-10 h-[480px] bg-hex-pattern opacity-60" />
+
+      <div className="flex items-center gap-2 text-xs">
+        <span className="pill">
+          <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse_glow" />
+          Built for Portaldot Mini Hackathon · Season 1
+        </span>
+      </div>
+
+      <h1 className="mt-6 max-w-3xl font-display text-5xl leading-[1.05] tracking-tight sm:text-7xl">
+        Predict. Stake.{" "}
+        <span className="bg-gradient-to-r from-brand to-accent bg-clip-text text-transparent">
+          Earn reputation
+        </span>{" "}
+        that follows you.
+      </h1>
+
+      <p className="mt-6 max-w-2xl text-lg text-text-muted">
+        Polagon turns collective belief into a tradable, on-chain asset — native to
+        Portaldot. Spin up a market in seconds, stake POT on outcomes you trust,
+        and earn a soulbound{" "}
+        <span className="text-text">Polagon Score</span> that proves you saw the future first.
+      </p>
+
+      <div className="mt-8 flex flex-wrap items-center gap-3">
+        <Link href="/markets" className="btn-primary">
+          Explore markets
+        </Link>
+        <Link href="/create" className="btn-ghost">
+          Create your first market →
+        </Link>
+      </div>
+
+      <div className="mt-10 flex flex-wrap gap-4 text-xs text-text-dim">
+        <span>· Open source under MIT</span>
+        <span>· Pays gas in POT</span>
+        <span>· Built natively on Ink! 5.x</span>
+      </div>
+    </section>
+  );
+}
+
+function ThreeLayers() {
+  const layers = [
+    {
+      title: "Markets",
+      tag: "Parimutuel",
+      desc:
+        "Stake POT on YES / NO. No order book, no oracle for time. Pools are split, payouts are proportional. Simple, demoable, fair.",
+      bullet: "→ create · bet · resolve · claim",
+    },
+    {
+      title: "Polls",
+      tag: "Coordination",
+      desc:
+        "Lightweight community polls weighted by reputation, not wallet age. Sybil-resistant. Cheap to deploy. Native to Portaldot DAOs.",
+      bullet: "→ propose · vote · settle",
+    },
+    {
+      title: "Polagon Score",
+      tag: "Soulbound",
+      desc:
+        "An on-chain ledger of every prediction outcome. Non-transferable. Composable. The only crypto reputation that grows with calibration.",
+      bullet: "→ accuracy · streak · payouts",
+    },
+  ];
+
+  return (
+    <section className="mt-28 sm:mt-36">
+      <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
+        Three composable layers, one protocol.
+      </h2>
+      <p className="mt-3 max-w-2xl text-text-muted">
+        Each layer is useful on its own. Together they form a self-reinforcing loop:
+        accurate predictors win bigger payouts, payouts grow Score, Score weighs more
+        in polls, polls drive market discovery.
+      </p>
+
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+        {layers.map((l) => (
+          <article
+            key={l.title}
+            className="card group relative overflow-hidden p-6 transition hover:border-brand/50"
+          >
+            <div className="absolute -right-8 -top-8 h-32 w-32 rounded-full bg-brand/10 opacity-0 blur-3xl transition group-hover:opacity-100" />
+            <div className="relative flex items-center justify-between">
+              <h3 className="font-display text-2xl">{l.title}</h3>
+              <span className="pill">{l.tag}</span>
+            </div>
+            <p className="relative mt-3 text-sm text-text-muted">{l.desc}</p>
+            <p className="relative mt-6 font-mono text-xs text-text-dim">
+              {l.bullet}
+            </p>
+          </article>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function NumbersStrip() {
+  const stats = [
+    { kpi: "$9B+", label: "2024–2025 Polymarket volume" },
+    { kpi: "0", label: "prediction primitives shipped on Portaldot — until now" },
+    { kpi: "27d", label: "build window for this hackathon" },
+    { kpi: "100%", label: "POT-native: every gas tx, every stake" },
+  ];
+
+  return (
+    <section className="mt-28 sm:mt-36">
+      <div className="card grid grid-cols-2 divide-x divide-border sm:grid-cols-4">
+        {stats.map((s) => (
+          <div key={s.label} className="px-6 py-8">
+            <div className="font-display text-3xl tracking-tight text-text">
+              {s.kpi}
+            </div>
+            <div className="mt-2 text-xs text-text-muted">{s.label}</div>
+          </div>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function Cta() {
+  return (
+    <section className="mt-28 sm:mt-36">
+      <div className="card relative overflow-hidden p-10 sm:p-14">
+        <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand/15 via-transparent to-accent/10" />
+        <h2 className="font-display text-3xl tracking-tight sm:text-5xl">
+          The future is a market. <br />
+          On Portaldot, it's Polagon.
+        </h2>
+        <p className="mt-4 max-w-xl text-text-muted">
+          We're submitting to{" "}
+          <span className="text-text">
+            Portaldot Mini Hackathon Season 1
+          </span>
+          . Demo Day: 2026-05-31 UTC+0. Watch this page.
+        </p>
+        <div className="mt-8 flex flex-wrap gap-3">
+          <Link href="/markets" className="btn-primary">
+            Explore markets
+          </Link>
+          <a
+            href="https://portaldot-dev.readthedocs.io/en/latest/"
+            target="_blank"
+            rel="noreferrer"
+            className="btn-ghost"
+          >
+            Portaldot dev docs ↗
+          </a>
+        </div>
+      </div>
+    </section>
+  );
+}

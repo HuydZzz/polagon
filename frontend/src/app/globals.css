@@ -1,0 +1,68 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
+
+  html,
+  body {
+    @apply bg-bg text-text;
+    font-feature-settings: "ss01", "cv11", "tnum";
+    -webkit-font-smoothing: antialiased;
+  }
+
+  ::selection {
+    @apply bg-brand/40 text-text;
+  }
+
+  /* Accessible focus ring across the app */
+  *:focus-visible {
+    @apply outline-none ring-2 ring-brand ring-offset-2 ring-offset-bg;
+  }
+}
+
+@layer components {
+  .container-page {
+    @apply mx-auto w-full max-w-6xl px-5 sm:px-8;
+  }
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 rounded-md px-4 py-2.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .btn-primary {
+    @apply btn bg-brand text-white hover:bg-brand-600 active:bg-brand-700;
+  }
+  .btn-ghost {
+    @apply btn border border-border text-text hover:bg-bg-elev;
+  }
+  .btn-yes {
+    @apply btn bg-success/15 text-success hover:bg-success/25 border border-success/30;
+  }
+  .btn-no {
+    @apply btn bg-danger/15 text-danger hover:bg-danger/25 border border-danger/30;
+  }
+
+  .card {
+    @apply rounded-xl border border-border bg-bg-card shadow-card;
+  }
+
+  .pill {
+    @apply inline-flex items-center gap-1.5 rounded-full border border-border bg-bg-subtle px-2.5 py-1 text-xs text-text-muted;
+  }
+
+  .grid-fade {
+    background-image: radial-gradient(
+        circle at top,
+        rgba(124, 58, 237, 0.18),
+        transparent 55%
+      ),
+      radial-gradient(
+        circle at bottom right,
+        rgba(59, 130, 246, 0.1),
+        transparent 50%
+      );
+  }
+}

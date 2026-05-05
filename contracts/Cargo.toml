@@ -1,0 +1,12 @@
+[workspace]
+resolver = "2"
+members = [
+    "prediction_market",
+    "reputation",
+]
+
+[profile.release]
+overflow-checks = false
+panic = "abort"
+lto = "fat"
+codegen-units = 1
