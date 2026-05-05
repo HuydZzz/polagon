@@ -1,10 +1,14 @@
+"use client";
+
 import Link from "next/link";
 import { MarketCard } from "@/components/MarketCard";
-import { MOCK_MARKETS } from "@/lib/markets";
+import { useMarkets } from "@/lib/hooks";
 
 export default function MarketsPage() {
-  const live = MOCK_MARKETS.filter((m) => m.status === "Open");
-  const settled = MOCK_MARKETS.filter((m) => m.status !== "Open");
+  const { data, isLoading, fromMock } = useMarkets();
+
+  const live = (data ?? []).filter((m) => m.status === "Open");
+  const settled = (data ?? []).filter((m) => m.status !== "Open");
 
   return (
     <div className="container-page">
@@ -20,6 +24,9 @@ export default function MarketsPage() {
         </Link>
       </header>
 
+      {fromMock && <MockBanner />}
+      {isLoading && !fromMock && <SkeletonGrid />}
+
       <section className="mt-10">
         <div className="mb-3 flex items-center gap-2 text-xs text-text-muted">
           <span className="h-1.5 w-1.5 rounded-full bg-success" />
@@ -30,6 +37,14 @@ export default function MarketsPage() {
             <MarketCard key={m.id} market={m} />
           ))}
         </div>
+        {!isLoading && live.length === 0 && (
+          <div className="card mt-3 px-6 py-12 text-center">
+            <p className="text-text-muted">No live markets yet.</p>
+            <Link href="/create" className="btn-primary mt-4 inline-flex">
+              Create the first one
+            </Link>
+          </div>
+        )}
       </section>
 
       {settled.length > 0 && (
@@ -44,11 +59,25 @@ export default function MarketsPage() {
           </div>
         </section>
       )}
+    </div>
+  );
+}
 
-      <p className="mt-12 rounded-md border border-border bg-bg-subtle px-4 py-3 text-xs text-text-dim">
-        Showing seed data. Live testnet data lands on D10 of the roadmap (May 13).
-        Wallet-signed actions land on D11.
-      </p>
+function MockBanner() {
+  return (
+    <div className="mt-6 rounded-md border border-warning/30 bg-warning/5 px-4 py-3 text-xs text-warning">
+      <span className="font-mono">⚠ mock mode</span> — contracts not deployed yet.
+      Run <code className="rounded bg-bg-elev px-1.5 py-0.5 text-text">make deploy</code> to switch to live data.
+    </div>
+  );
+}
+
+function SkeletonGrid() {
+  return (
+    <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="card h-44 animate-pulse bg-bg-card/50" />
+      ))}
     </div>
   );
 }

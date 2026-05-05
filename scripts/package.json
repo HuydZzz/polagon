@@ -1,0 +1,26 @@
+{
+  "name": "polagon-scripts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Deployment + seeding scripts for the Polagon protocol.",
+  "type": "module",
+  "scripts": {
+    "deploy": "tsx deploy.ts",
+    "seed": "tsx seed.ts"
+  },
+  "dependencies": {
+    "@polkadot/api": "^15.0.0",
+    "@polkadot/api-contract": "^15.0.0",
+    "@polkadot/keyring": "^13.0.0",
+    "@polkadot/util": "^13.0.0",
+    "@polkadot/util-crypto": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.7.0",
+    "tsx": "^4.19.1",
+    "typescript": "^5.6.2"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

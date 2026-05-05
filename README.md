@@ -95,6 +95,7 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed flow diagrams and storage 
 ├── README.md                # project overview
 ├── ARCHITECTURE.md          # technical deep-dive
 ├── LICENSE                  # MIT
+├── Makefile                 # build · deploy · dev orchestration
 ├── docs/
 │   ├── whitepaper.md        # extended design rationale
 │   └── tokenomics.md        # POT flows, fees, sustainability
@@ -102,41 +103,66 @@ See [ARCHITECTURE.md](./ARCHITECTURE.md) for detailed flow diagrams and storage 
 │   ├── Cargo.toml           # workspace
 │   ├── prediction_market/   # parimutuel market + factory
 │   └── reputation/          # soulbound Polagon Score
+├── scripts/                 # deploy + seed scripts (TypeScript)
+│   ├── deploy.ts
+│   └── seed.ts
 └── frontend/                # Next.js 14 + Tailwind
     ├── src/app/             # App Router pages
-    └── src/components/
+    ├── src/components/      # UI primitives
+    └── src/lib/             # chain client, hooks, types
 ```
 
 ## Quick Start
 
 ### Prerequisites
-- Rust `nightly-2025-01` or later, with the `wasm32-unknown-unknown` target
+
+- Rust + `wasm32-unknown-unknown` target
 - `cargo-contract` v5.x — `cargo install cargo-contract --force`
+- `substrate-contracts-node` for local dev — `cargo install contracts-node --force`
 - Node.js 20+ and pnpm 9+
-- A Portaldot wallet funded with testnet POT (see [Portaldot dev docs](https://portaldot-dev.readthedocs.io/en/latest/))
+- A Portaldot wallet funded with POT (see [Portaldot dev docs](https://portaldot-dev.readthedocs.io/en/latest/))
 
-### Build the contracts
+### Local devnet (one-shot)
+
+A `Makefile` orchestrates the full stack. From the repo root:
+
 ```bash
-cd contracts/prediction_market
-cargo contract build --release
-cd ../reputation
-cargo contract build --release
-```
-Each build emits a `.contract` bundle in `target/ink/` ready to upload via `cargo contract instantiate` or the Portaldot Contracts UI.
+make install            # JS deps for frontend + scripts
+make build-contracts    # cargo contract build --release
+make test-contracts     # cargo test --workspace
 
-### Run the frontend
+# in three separate terminals:
+make node               # local substrate-contracts-node (--dev --tmp)
+make deploy             # deploy + wire both contracts; writes frontend/.env.local
+make seed               # create 5 demonstration markets
+make dev                # → http://localhost:3000
+```
+
+Without a deploy, the frontend runs in **mock mode** — every page renders, but with seed data clearly marked.
+
+### Testnet
+
 ```bash
-cd frontend
-pnpm install
-pnpm dev
-# → http://localhost:3000
+make build-contracts
+RPC_URL=wss://rpc.testnet.portaldot.io DEPLOYER_SURI="$YOUR_SEED" make deploy
+RPC_URL=wss://rpc.testnet.portaldot.io DEPLOYER_SURI="$YOUR_SEED" make seed
+make dev
 ```
 
-Set the deployed contract addresses in `frontend/.env.local`:
-```
-NEXT_PUBLIC_FACTORY_ADDRESS=5...
-NEXT_PUBLIC_REPUTATION_ADDRESS=5...
-NEXT_PUBLIC_RPC_URL=wss://rpc.portaldot.io   # placeholder; check dev docs
+The deploy script writes `frontend/.env.local` with the live addresses; restart `make dev` to pick them up.
+
+### Manual layout (if you'd rather not use the Makefile)
+
+```bash
+# build
+cd contracts/prediction_market && cargo contract build --release
+cd ../reputation               && cargo contract build --release
+
+# deploy
+cd ../../scripts && pnpm install && RPC_URL=… DEPLOYER_SURI=… pnpm deploy
+
+# frontend
+cd ../frontend && pnpm install && pnpm dev
 ```
 
 ## Status

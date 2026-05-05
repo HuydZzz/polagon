@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { fmtPot, impliedOdds, type Market } from "@/lib/markets";
+import { fmtPot, impliedOdds } from "@/lib/format";
+import type { Market } from "@/lib/types";
 
 export function MarketCard({ market }: { market: Market }) {
   const odds = impliedOdds(market.totalYes, market.totalNo);
@@ -31,8 +32,8 @@ export function MarketCard({ market }: { market: Market }) {
           {market.status === "Resolved"
             ? "Resolved"
             : days === 0
-            ? "Expires today"
-            : `${days}d left`}
+              ? "Expires today"
+              : `${days}d left`}
         </span>
       </div>
     </Link>

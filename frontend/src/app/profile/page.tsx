@@ -1,4 +1,16 @@
-export default function ProfileLandingPage() {
+"use client";
+
+import { useWallet } from "@/lib/wallet";
+import { useReputation } from "@/lib/hooks";
+import { fmtPot, shortAddr } from "@/lib/format";
+
+export default function ProfilePage() {
+  const { active } = useWallet();
+  const { data: stats, fromMock } = useReputation(active?.address);
+
+  const score = stats?.score ?? 0;
+  const accuracy = stats ? stats.accuracyBps / 100 : 0;
+
   return (
     <div className="container-page max-w-3xl pt-10">
       <h1 className="font-display text-4xl tracking-tight">Polagon Score</h1>
@@ -8,26 +20,49 @@ export default function ProfileLandingPage() {
       </p>
 
       <div className="card mt-8 grid items-center gap-8 p-8 sm:grid-cols-[auto,1fr]">
-        <ScoreHex score={137} />
+        <ScoreHex score={score} />
         <div>
           <div className="text-xs uppercase tracking-wider text-text-muted">
             Your score
           </div>
-          <div className="font-display text-6xl tracking-tight">137</div>
-          <div className="mt-2 text-sm text-text-muted">
-            Connect your wallet to see your real score, accuracy, and streak.
+          <div className="font-display text-6xl tracking-tight tabular-nums">
+            {score}
           </div>
-          <button className="btn-primary mt-4" disabled>
-            Connect wallet
-          </button>
+          <div className="mt-2 text-sm text-text-muted">
+            {active
+              ? `Connected as ${shortAddr(active.address)}`
+              : "Connect your wallet to see your real score, accuracy, and streak."}
+          </div>
         </div>
       </div>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
-        <Stat k="Accuracy" v="—" />
-        <Stat k="Predictions" v="—" />
-        <Stat k="Best streak" v="—" />
+        <Stat
+          k="Accuracy"
+          v={stats && stats.totalPredictions > 0 ? `${accuracy.toFixed(0)}%` : "—"}
+        />
+        <Stat
+          k="Predictions"
+          v={stats ? String(stats.totalPredictions) : "—"}
+        />
+        <Stat
+          k="Best streak"
+          v={stats ? String(stats.bestStreak) : "—"}
+        />
       </div>
+
+      {stats && stats.totalPredictions > 0 && (
+        <div className="mt-6 grid gap-3 sm:grid-cols-2">
+          <Stat k="Total staked" v={`${fmtPot(stats.totalStaked)} POT`} />
+          <Stat k="Total won" v={`${fmtPot(stats.totalWon)} POT`} />
+        </div>
+      )}
+
+      {fromMock && (
+        <p className="mt-6 rounded-md border border-warning/30 bg-warning/5 px-4 py-2 text-xs text-warning">
+          mock mode — connect wallet + deploy contracts to see real reputation
+        </p>
+      )}
 
       <p className="mt-10 rounded-md border border-border bg-bg-subtle px-4 py-3 text-xs text-text-dim">
         Score formula: <span className="font-mono">correct × 100 + won_pot + 2^min(streak, 5)</span>.
@@ -43,7 +78,7 @@ function Stat({ k, v }: { k: string; v: string }) {
       <div className="text-xs uppercase tracking-wider text-text-muted">
         {k}
       </div>
-      <div className="mt-1 font-display text-2xl">{v}</div>
+      <div className="mt-1 font-display text-2xl tabular-nums">{v}</div>
     </div>
   );
 }
@@ -69,7 +104,7 @@ function ScoreHex({ score }: { score: number }) {
       />
       <text
         x="60"
-        y="74"
+        y="78"
         textAnchor="middle"
         fontFamily="Instrument Serif, Georgia, serif"
         fontSize="36"

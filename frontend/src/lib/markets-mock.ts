@@ -1,55 +1,10 @@
 /**
- * Polagon — domain types + mock data.
- *
- * On D9 of the roadmap, the mock arrays here are replaced by live calls to the
- * `prediction_market` contract via `@polkadot/api-contract`. The component layer
- * is built against this typed surface so the swap is mechanical.
+ * Mock seed data — used until contracts are deployed (`isChainWired === false`).
+ * Hooks in `hooks.ts` swap to live data automatically once env addresses are set.
  */
 
-export type MarketStatus = "Open" | "Resolved" | "Cancelled";
-
-export interface Market {
-  id: number;
-  question: string;
-  category: string;
-  creator: string; // SS58 address
-  resolver: string;
-  endTime: number; // ms epoch
-  totalYes: bigint; // POT base units
-  totalNo: bigint;
-  status: MarketStatus;
-  outcome?: boolean;
-  createdAt: number;
-}
-
-export interface UserPosition {
-  yes: bigint;
-  no: bigint;
-}
-
-const ONE_POT = 1_000_000_000_000n;
-
-export function pot(n: number): bigint {
-  return BigInt(Math.round(n * 1e6)) * (ONE_POT / 1_000_000n);
-}
-
-export function fmtPot(v: bigint, decimals = 2): string {
-  const whole = v / ONE_POT;
-  const frac = v % ONE_POT;
-  const fracStr = (Number(frac) / Number(ONE_POT))
-    .toFixed(decimals)
-    .slice(2);
-  return `${whole.toLocaleString()}${fracStr ? "." + fracStr : ""}`;
-}
-
-export function impliedOdds(yes: bigint, no: bigint): { yes: number; no: number } {
-  const total = yes + no;
-  if (total === 0n) return { yes: 50, no: 50 };
-  const y = Number((yes * 10000n) / total) / 100;
-  return { yes: y, no: 100 - y };
-}
-
-// ---------- Mock seed (replaced on D10) ----------
+import { pot } from "./format";
+import type { Market } from "./types";
 
 const now = Date.now();
 const day = 86_400_000;
@@ -129,12 +84,3 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: now - 1 * day,
   },
 ];
-
-export function getMarket(id: number): Market | undefined {
-  return MOCK_MARKETS.find((m) => m.id === id);
-}
-
-export function listMarkets(filter?: MarketStatus): Market[] {
-  if (!filter) return MOCK_MARKETS;
-  return MOCK_MARKETS.filter((m) => m.status === filter);
-}

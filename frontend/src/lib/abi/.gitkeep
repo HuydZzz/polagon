@@ -1,0 +1,2 @@
+ABIs (`prediction_market.json`, `reputation.json`) are written here by `make deploy`.
+Until then, the frontend runs in mock mode (see `lib/env.ts`).

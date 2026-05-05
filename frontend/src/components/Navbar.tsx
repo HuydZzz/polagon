@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { ConnectWalletButton } from "./ConnectWalletButton";
 
 const NAV = [
   { href: "/markets", label: "Markets" },
@@ -36,15 +37,7 @@ export function Navbar() {
           <Link href="/create" className="btn-ghost hidden sm:inline-flex">
             Create market
           </Link>
-          <button
-            type="button"
-            className="btn-primary"
-            // wallet connection lands on D8 of the roadmap
-            disabled
-            title="Wallet connection lands D8"
-          >
-            Connect wallet
-          </button>
+          <ConnectWalletButton />
         </div>
       </div>
     </header>

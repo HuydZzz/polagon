@@ -1,15 +1,36 @@
-import Link from "next/link";
-import { notFound } from "next/navigation";
-import { fmtPot, getMarket, impliedOdds } from "@/lib/markets";
+"use client";
 
-export default function MarketDetailPage({
-  params,
-}: {
-  params: { id: string };
-}) {
-  const id = Number(params.id);
-  const market = Number.isFinite(id) ? getMarket(id) : undefined;
-  if (!market) notFound();
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { useMarket } from "@/lib/hooks";
+import { fmtPot, impliedOdds, shortAddr } from "@/lib/format";
+
+export default function MarketDetailPage() {
+  const params = useParams<{ id: string }>();
+  const id = Number(params?.id);
+  const { data: market, isLoading, fromMock } = useMarket(
+    Number.isFinite(id) ? id : undefined,
+  );
+
+  if (isLoading) {
+    return (
+      <div className="container-page pt-10">
+        <div className="card h-72 animate-pulse bg-bg-card/50" />
+      </div>
+    );
+  }
+  if (!market) {
+    return (
+      <div className="container-page pt-10">
+        <Link href="/markets" className="text-xs text-text-muted hover:text-text">
+          ← All markets
+        </Link>
+        <div className="card mt-6 px-6 py-12 text-center">
+          <p className="text-text-muted">Market not found.</p>
+        </div>
+      </div>
+    );
+  }
 
   const odds = impliedOdds(market.totalYes, market.totalNo);
   const total = market.totalYes + market.totalNo;
@@ -24,6 +45,12 @@ export default function MarketDetailPage({
         ← All markets
       </Link>
 
+      {fromMock && (
+        <p className="mt-4 rounded-md border border-warning/30 bg-warning/5 px-4 py-2 text-xs text-warning">
+          mock mode — deploy contracts to see live data
+        </p>
+      )}
+
       <header className="mt-4 flex flex-wrap items-start justify-between gap-4">
         <div className="max-w-2xl">
           <span className="pill">{market.category}</span>
@@ -31,7 +58,7 @@ export default function MarketDetailPage({
             {market.question}
           </h1>
           <p className="mt-2 text-xs text-text-dim">
-            Created by {market.creator} · Resolver {market.resolver}
+            Created by {shortAddr(market.creator)} · Resolver {shortAddr(market.resolver)}
           </p>
         </div>
 
@@ -82,7 +109,7 @@ export default function MarketDetailPage({
             Place a bet
           </h2>
           <p className="mt-2 text-xs text-text-dim">
-            Wallet signing lands D11. UI preview only.
+            Wallet signing wires up D3.
           </p>
           <div className="mt-4 grid grid-cols-2 gap-2">
             <button className="btn-yes" disabled>
@@ -94,41 +121,9 @@ export default function MarketDetailPage({
           </div>
           <div className="mt-6 space-y-2 text-xs text-text-muted">
             <Row k="Status" v={isResolved ? `Resolved · ${market.outcome ? "YES" : "NO"}` : "Open"} />
-            <Row
-              k="Ends"
-              v={new Date(market.endTime).toLocaleString()}
-            />
+            <Row k="Ends" v={new Date(market.endTime).toLocaleString()} />
             <Row k="Protocol fee" v="2.0%" />
           </div>
-        </div>
-      </section>
-
-      <section className="mt-10">
-        <h2 className="text-sm uppercase tracking-wider text-text-muted">
-          Recent activity
-        </h2>
-        <div className="card mt-3 divide-y divide-border">
-          {[
-            { addr: "5Gw…E9Pa", side: "YES", amt: "120.0 POT", at: "2m ago" },
-            { addr: "5Da…Vc2k", side: "NO", amt: "40.5 POT", at: "12m ago" },
-            { addr: "5Hp…GZkr", side: "YES", amt: "80.0 POT", at: "1h ago" },
-          ].map((row, i) => (
-            <div
-              key={i}
-              className="flex items-center justify-between px-5 py-3 text-sm"
-            >
-              <span className="font-mono text-text-muted">{row.addr}</span>
-              <span
-                className={
-                  row.side === "YES" ? "text-success" : "text-danger"
-                }
-              >
-                {row.side}
-              </span>
-              <span className="font-mono text-text">{row.amt}</span>
-              <span className="text-xs text-text-dim">{row.at}</span>
-            </div>
-          ))}
         </div>
       </section>
     </div>
