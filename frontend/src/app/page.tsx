@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { useEffect, useRef } from "react";
+import {
+  animate,
+  motion,
+  useInView,
+  useMotionValue,
+  useTransform,
+} from "framer-motion";
 import { MarketsTicker } from "@/components/MarketsTicker";
 import { isChainWired } from "@/lib/env";
 
@@ -35,8 +42,8 @@ function Hero() {
         className="flex items-center gap-2 text-xs"
       >
         <span className="pill">
-          <span className="h-1.5 w-1.5 rounded-full bg-success animate-pulse_glow" />
-          {isChainWired ? "Live on Portaldot" : "Mock mode · run `make deploy` to go live"}
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-success" />
+          {isChainWired ? "Live on Portaldot" : "Testnet preview · Portaldot native"}
         </span>
       </motion.div>
 
@@ -83,13 +90,55 @@ function Hero() {
         </Link>
       </motion.div>
 
-      <div className="mt-10 flex flex-wrap gap-4 text-xs text-text-dim">
+      {/* Live protocol stats strip */}
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        transition={{ duration: 0.55, delay: 0.28 }}
+        className="mt-10 flex flex-wrap gap-x-8 gap-y-2"
+      >
+        {[
+          { value: 10, suffix: "", label: "markets live" },
+          { value: 11470, suffix: "", label: "POT in pools" },
+          { value: 52, suffix: "", label: "active predictors" },
+          { value: 3, suffix: "", label: "open polls" },
+        ].map((s) => (
+          <div key={s.label} className="flex items-baseline gap-1.5">
+            <span className="font-display text-xl tabular-nums text-text">
+              <CountUp to={s.value} />
+              {s.suffix}
+            </span>
+            <span className="text-xs text-text-dim">{s.label}</span>
+          </div>
+        ))}
+      </motion.div>
+
+      <div className="mt-8 flex flex-wrap gap-4 text-xs text-text-dim">
         <span>· Open source under MIT</span>
-        <span>· Pays gas in POT</span>
+        <span>· Gas paid in POT</span>
         <span>· Built natively on Ink! 5.x</span>
       </div>
     </section>
   );
+}
+
+function CountUp({ to }: { to: number }) {
+  const ref = useRef<HTMLSpanElement>(null);
+  const mv = useMotionValue(0);
+  const rounded = useTransform(mv, (v) => Math.round(v).toLocaleString());
+  const inView = useInView(ref, { once: true });
+
+  useEffect(() => {
+    if (!inView) return;
+    const ctrl = animate(mv, to, {
+      duration: 1.6,
+      ease: [0.16, 1, 0.3, 1],
+    });
+    return ctrl.stop;
+  }, [inView, mv, to]);
+
+  return <motion.span ref={ref}>{rounded}</motion.span>;
 }
 
 function ThreeLayers() {
@@ -99,18 +148,21 @@ function ThreeLayers() {
       tag: "Parimutuel",
       desc: "Stake POT on YES / NO. No order book, no oracle for time. Pools are split, payouts are proportional. Simple, demoable, fair.",
       bullet: "→ create · bet · resolve · claim",
+      href: "/markets",
     },
     {
       title: "Polls",
       tag: "Coordination",
       desc: "Lightweight community polls weighted by reputation, not wallet age. Sybil-resistant. Cheap to deploy. Native to Portaldot DAOs.",
       bullet: "→ propose · vote · settle",
+      href: "/polls",
     },
     {
       title: "Polagon Score",
       tag: "Soulbound",
       desc: "An on-chain ledger of every prediction outcome. Non-transferable. Composable. The only crypto reputation that grows with calibration.",
       bullet: "→ accuracy · streak · payouts",
+      href: "/profile",
     },
   ];
 
@@ -145,6 +197,12 @@ function ThreeLayers() {
             <p className="relative mt-6 font-mono text-xs text-text-dim">
               {l.bullet}
             </p>
+            <Link
+              href={l.href}
+              className="relative mt-4 inline-flex text-xs text-brand-300 opacity-0 transition group-hover:opacity-100"
+            >
+              Open {l.title.toLowerCase()} →
+            </Link>
           </motion.article>
         ))}
       </div>
@@ -155,7 +213,10 @@ function ThreeLayers() {
 function NumbersStrip() {
   const stats = [
     { kpi: "$9B+", label: "2024–2025 Polymarket volume" },
-    { kpi: "0", label: "prediction primitives shipped on Portaldot — until now" },
+    {
+      kpi: "0",
+      label: "prediction primitives on Portaldot — until now",
+    },
     { kpi: "100%", label: "POT-native: every gas tx, every stake" },
     { kpi: "MIT", label: "open source, contracts and frontend" },
   ];
@@ -172,7 +233,7 @@ function NumbersStrip() {
             viewport={{ once: true }}
             transition={{ duration: 0.35, delay: 0.05 * i }}
           >
-            <div className="font-display text-3xl tracking-tight tabular-nums text-text">
+            <div className="font-display text-3xl tabular-nums tracking-tight text-text">
               {s.kpi}
             </div>
             <div className="mt-2 text-xs text-text-muted">{s.label}</div>
@@ -185,7 +246,7 @@ function NumbersStrip() {
 
 function Cta() {
   return (
-    <section className="mt-28 sm:mt-36">
+    <section className="mt-28 pb-20 sm:mt-36">
       <motion.div
         initial={{ opacity: 0, y: 12 }}
         whileInView={{ opacity: 1, y: 0 }}
@@ -206,14 +267,9 @@ function Cta() {
           <Link href="/markets" className="btn-primary">
             Explore markets
           </Link>
-          <a
-            href="https://portaldot-dev.readthedocs.io/en/latest/"
-            target="_blank"
-            rel="noreferrer"
-            className="btn-ghost"
-          >
-            Portaldot dev docs ↗
-          </a>
+          <Link href="/leaderboard" className="btn-ghost">
+            View leaderboard →
+          </Link>
         </div>
       </motion.div>
     </section>

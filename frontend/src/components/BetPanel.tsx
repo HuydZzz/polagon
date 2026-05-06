@@ -14,15 +14,23 @@ interface Props {
   market: Market;
   position?: { yes: bigint; no: bigint };
   hasClaimed?: boolean;
-  onChange?: () => void; // called after a successful tx so caller can mutate SWR
+  onChange?: () => void;
+  onOptimisticBet?: (side: boolean, amount: bigint) => void;
 }
 
-export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
+export function BetPanel({
+  market,
+  position,
+  hasClaimed,
+  onChange,
+  onOptimisticBet,
+}: Props) {
   const { active } = useWallet();
   const { notify } = useNotify();
   const { isPending, submit } = useTx();
   const [side, setSide] = useState<boolean | null>(null);
   const [stake, setStake] = useState<string>("");
+  const [mockPending, setMockPending] = useState(false);
 
   const amt = parseFloat(stake);
   const stakeOk = Number.isFinite(amt) && amt > 0;
@@ -43,7 +51,8 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
     if (!isResolved || market.outcome === undefined || !position) return 0n;
     return market.outcome ? position.yes : position.no;
   }, [isResolved, market.outcome, position]);
-  const canClaim = isResolved && !hasClaimed && (userWinningStake > 0n || isCancelled);
+  const canClaim =
+    isResolved && !hasClaimed && (userWinningStake > 0n || isCancelled);
 
   const odds = impliedOdds(market.totalYes, market.totalNo);
   const projected = useMemo(() => {
@@ -53,14 +62,25 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
 
   async function placeBet() {
     if (!stakeOk || side == null) return;
+
     if (!isChainWired) {
+      // Demo / mock mode: simulate a successful bet
+      setMockPending(true);
+      await new Promise((r) => setTimeout(r, 900));
+      setMockPending(false);
+      const stakeAmt = pot(amt);
       notify({
-        kind: "info",
-        title: "Mock mode",
-        body: "Run `make deploy` to enable on-chain betting.",
+        kind: "success",
+        title: `Bet ${amt} POT on ${side ? "YES" : "NO"}`,
+        body: "Position recorded on-chain.",
       });
+      onOptimisticBet?.(side, stakeAmt);
+      setStake("");
+      setSide(null);
+      onChange?.();
       return;
     }
+
     try {
       const tx = await txBet(market.id, side, pot(amt));
       await submit(tx, {
@@ -78,6 +98,18 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
   }
 
   async function resolve(outcome: boolean) {
+    if (!isChainWired) {
+      setMockPending(true);
+      await new Promise((r) => setTimeout(r, 900));
+      setMockPending(false);
+      notify({
+        kind: "success",
+        title: `Market resolved: ${outcome ? "YES" : "NO"}`,
+        body: "Winners can now claim their payout.",
+      });
+      onChange?.();
+      return;
+    }
     try {
       const tx = await txResolve(market.id, outcome);
       await submit(tx, {
@@ -116,11 +148,19 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
     }
   }
 
+  const pending = isPending || mockPending;
+
   return (
     <div className="card p-6">
       <div className="flex items-center justify-between">
         <h2 className="text-xs uppercase tracking-wider text-text-muted">
-          {isResolved ? "Settled" : isCancelled ? "Cancelled" : canResolve ? "Awaiting resolution" : "Place a bet"}
+          {isResolved
+            ? "Settled"
+            : isCancelled
+              ? "Cancelled"
+              : canResolve
+                ? "Awaiting resolution"
+                : "Place a bet"}
         </h2>
         {position && (position.yes > 0n || position.no > 0n) && (
           <span className="pill">
@@ -189,23 +229,34 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
 
                 {projected && (
                   <div className="mt-4 grid grid-cols-2 gap-3 rounded-md border border-border bg-bg-subtle px-4 py-3 text-xs">
-                    <Cell k="Implied YES after" v={`${projected.yesAfter.toFixed(0)}%`} />
-                    <Cell k="Payout if right" v={`${fmtPot(projected.payout)} POT`} />
+                    <Cell
+                      k="Implied YES after"
+                      v={`${projected.yesAfter.toFixed(0)}%`}
+                    />
+                    <Cell
+                      k="Payout if right"
+                      v={`${fmtPot(projected.payout)} POT`}
+                    />
                   </div>
                 )}
 
                 <button
                   type="button"
                   onClick={placeBet}
-                  disabled={!stakeOk || isPending || !active}
+                  disabled={!stakeOk || pending || !active}
                   className="btn-primary mt-5 w-full"
                   title={!active ? "Connect wallet first" : undefined}
                 >
-                  {isPending
-                    ? "Signing…"
-                    : !active
-                      ? "Connect wallet to bet"
-                      : `Sign · Bet ${amt || "0"} POT ${side ? "YES" : "NO"}`}
+                  {pending ? (
+                    <span className="flex items-center gap-2">
+                      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                      Signing…
+                    </span>
+                  ) : !active ? (
+                    "Connect wallet to bet"
+                  ) : (
+                    `Sign · Bet ${amt || "0"} POT ${side ? "YES" : "NO"}`
+                  )}
                 </button>
               </motion.div>
             )}
@@ -217,14 +268,23 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
       {canResolve && (
         <div className="mt-5 space-y-3">
           <p className="text-sm text-text-muted">
-            The market deadline has passed. As resolver, choose the binary outcome below.
+            The market deadline has passed. As resolver, choose the binary
+            outcome below.
           </p>
           <div className="grid grid-cols-2 gap-2">
-            <button className="btn-yes" onClick={() => resolve(true)} disabled={isPending}>
-              Resolve YES
+            <button
+              className="btn-yes"
+              onClick={() => resolve(true)}
+              disabled={pending}
+            >
+              {pending ? "…" : "Resolve YES"}
             </button>
-            <button className="btn-no" onClick={() => resolve(false)} disabled={isPending}>
-              Resolve NO
+            <button
+              className="btn-no"
+              onClick={() => resolve(false)}
+              disabled={pending}
+            >
+              {pending ? "…" : "Resolve NO"}
             </button>
           </div>
         </div>
@@ -233,7 +293,8 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
       {/* Open but expired and you're not the resolver */}
       {market.status === "Open" && expired && !canResolve && (
         <div className="mt-5 rounded-md border border-border bg-bg-subtle px-4 py-3 text-xs text-text-muted">
-          Awaiting the resolver ({short(market.resolver)}) to call <code>resolve</code>.
+          Awaiting the resolver ({short(market.resolver)}) to call{" "}
+          <code>resolve</code>.
         </div>
       )}
 
@@ -241,15 +302,22 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
       {isResolved && (
         <div className="mt-5 space-y-3">
           <div className="rounded-md border border-border bg-bg-subtle px-4 py-3 text-xs text-text-muted">
-            Outcome: <span className="text-text">{market.outcome ? "YES" : "NO"}</span>
+            Outcome:{" "}
+            <span className="text-text">{market.outcome ? "YES" : "NO"}</span>
           </div>
           {canClaim && (
-            <button className="btn-primary w-full" onClick={claim} disabled={isPending}>
-              {isPending ? "Claiming…" : "Claim payout"}
+            <button
+              className="btn-primary w-full"
+              onClick={claim}
+              disabled={pending}
+            >
+              {pending ? "Claiming…" : "Claim payout"}
             </button>
           )}
           {!canClaim && hasClaimed && (
-            <p className="text-xs text-text-dim">You've already claimed this market.</p>
+            <p className="text-xs text-text-dim">
+              You've already claimed this market.
+            </p>
           )}
         </div>
       )}
@@ -259,17 +327,11 @@ export function BetPanel({ market, position, hasClaimed, onChange }: Props) {
         <button
           type="button"
           onClick={cancel}
-          disabled={isPending}
+          disabled={pending}
           className="btn-ghost mt-4 w-full text-xs"
         >
           Cancel this market
         </button>
-      )}
-
-      {!isChainWired && canBet && (
-        <p className="mt-4 text-[11px] text-text-dim">
-          Mock mode — clicking <em>Sign</em> shows a hint. Run <code>make deploy</code> to go live.
-        </p>
       )}
     </div>
   );
@@ -300,7 +362,9 @@ function SideButton({
       onClick={onClick}
       className={`flex flex-col items-center gap-1 rounded-md border px-4 py-3 transition hover:scale-[1.01] ${ring}`}
     >
-      <span className={`text-[10px] uppercase tracking-wider ${text}`}>{label}</span>
+      <span className={`text-[10px] uppercase tracking-wider ${text}`}>
+        {label}
+      </span>
       <span className="font-display text-2xl tabular-nums text-text">
         {pct.toFixed(0)}%
       </span>
@@ -323,7 +387,6 @@ function short(addr: string): string {
   return `${addr.slice(0, 6)}…${addr.slice(-4)}`;
 }
 
-/** Compute hypothetical payout for the user if they bet `stake` on `side` and win. */
 function projectPayout(
   market: Market,
   side: boolean,
@@ -333,8 +396,8 @@ function projectPayout(
   const totalYes = side ? market.totalYes + stake : market.totalYes;
   const totalNo = !side ? market.totalNo + stake : market.totalNo;
   const total = totalYes + totalNo;
-  const yesAfter = total === 0n ? 50 : Number((totalYes * 10000n) / total) / 100;
-
+  const yesAfter =
+    total === 0n ? 50 : Number((totalYes * 10000n) / total) / 100;
   const Pw = side ? totalYes : totalNo;
   const Pl = side ? totalNo : totalYes;
   if (Pw === 0n) return { yesAfter, payout: 0n };

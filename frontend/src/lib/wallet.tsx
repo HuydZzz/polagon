@@ -1,14 +1,5 @@
 "use client";
 
-/**
- * WalletProvider — connects to the polkadot-js (or compatible) browser extension
- * and exposes the active account + a signer to React.
- *
- * Note: extension APIs only exist in the browser. Every entry point here is
- * gated by a `typeof window` check; the file is safe to import from server
- * components but does nothing useful there.
- */
-
 import {
   createContext,
   useCallback,
@@ -21,17 +12,28 @@ import {
 import type { InjectedAccountWithMeta } from "@polkadot/extension-inject/types";
 import type { Signer } from "@polkadot/types/types";
 
+const DEMO_ACCOUNT: InjectedAccountWithMeta = {
+  address: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+  meta: { name: "Demo User", source: "demo" },
+  type: "sr25519",
+};
+
+const STORAGE_KEY = "polagon:active-account";
+const DEMO_KEY = "polagon:demo-mode";
+
 interface WalletState {
   isReady: boolean;
   isConnecting: boolean;
   accounts: InjectedAccountWithMeta[];
   active: InjectedAccountWithMeta | undefined;
   signer: Signer | undefined;
+  isDemoMode: boolean;
   error: string | undefined;
 }
 
 interface WalletApi extends WalletState {
   connect: () => Promise<void>;
+  connectDemo: () => void;
   disconnect: () => void;
   setActive: (address: string) => void;
 }
@@ -42,15 +44,30 @@ const initialState: WalletState = {
   accounts: [],
   active: undefined,
   signer: undefined,
+  isDemoMode: false,
   error: undefined,
 };
 
 const WalletContext = createContext<WalletApi | null>(null);
 
-const STORAGE_KEY = "polagon:active-account";
-
 export function WalletProvider({ children }: { children: ReactNode }) {
   const [state, setState] = useState<WalletState>(initialState);
+
+  const connectDemo = useCallback(() => {
+    setState({
+      isReady: true,
+      isConnecting: false,
+      accounts: [DEMO_ACCOUNT],
+      active: DEMO_ACCOUNT,
+      signer: undefined,
+      isDemoMode: true,
+      error: undefined,
+    });
+    if (typeof window !== "undefined") {
+      window.localStorage.setItem(DEMO_KEY, "1");
+      window.localStorage.removeItem(STORAGE_KEY);
+    }
+  }, []);
 
   const connect = useCallback(async () => {
     if (typeof window === "undefined") return;
@@ -74,12 +91,16 @@ export function WalletProvider({ children }: { children: ReactNode }) {
         accounts.find((a) => a.address === remembered) ?? accounts[0];
       const injector = await web3FromAddress(active.address);
 
+      // Clear demo mode when a real wallet connects
+      window.localStorage.removeItem(DEMO_KEY);
+
       setState({
         isReady: true,
         isConnecting: false,
         accounts,
         active,
         signer: injector.signer,
+        isDemoMode: false,
         error: undefined,
       });
       window.localStorage.setItem(STORAGE_KEY, active.address);
@@ -105,27 +126,32 @@ export function WalletProvider({ children }: { children: ReactNode }) {
       const injector = await web3FromAddress(address);
       setState((p) => ({ ...p, signer: injector.signer }));
     } catch {
-      /* no-op: user may switch back to a previously authorized account */
+      /* no-op */
     }
   }, []);
 
   const disconnect = useCallback(() => {
     if (typeof window !== "undefined") {
       window.localStorage.removeItem(STORAGE_KEY);
+      window.localStorage.removeItem(DEMO_KEY);
     }
     setState(initialState);
   }, []);
 
-  // Auto-reconnect on mount if a previous session is remembered.
+  // Auto-reconnect on mount
   useEffect(() => {
     if (typeof window === "undefined") return;
+    if (window.localStorage.getItem(DEMO_KEY)) {
+      connectDemo();
+      return;
+    }
     const had = window.localStorage.getItem(STORAGE_KEY);
     if (had) void connect();
-  }, [connect]);
+  }, [connect, connectDemo]);
 
   const api = useMemo<WalletApi>(
-    () => ({ ...state, connect, disconnect, setActive }),
-    [state, connect, disconnect, setActive],
+    () => ({ ...state, connect, connectDemo, disconnect, setActive }),
+    [state, connect, connectDemo, disconnect, setActive],
   );
 
   return (
@@ -135,8 +161,6 @@ export function WalletProvider({ children }: { children: ReactNode }) {
 
 export function useWallet(): WalletApi {
   const ctx = useContext(WalletContext);
-  if (!ctx) {
-    throw new Error("useWallet must be used inside <WalletProvider>");
-  }
+  if (!ctx) throw new Error("useWallet must be used inside <WalletProvider>");
   return ctx;
 }

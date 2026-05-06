@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { useMarket, usePosition } from "@/lib/hooks";
 import { useWallet } from "@/lib/wallet";
@@ -17,16 +18,40 @@ export default function MarketDetailPage() {
   const id = Number.isFinite(idNum) ? idNum : undefined;
   const { active } = useWallet();
 
-  const { data: market, isLoading, fromMock, refresh: refreshMarket } = useMarket(id);
+  const {
+    data: market,
+    isLoading,
+    refresh: refreshMarket,
+  } = useMarket(id);
   const { data: position, refresh: refreshPosition } = usePosition(
     id,
     active?.address,
   );
 
+  // Optimistic pool state — updated immediately after a successful mock bet
+  const [optimisticYes, setOptimisticYes] = useState<bigint | null>(null);
+  const [optimisticNo, setOptimisticNo] = useState<bigint | null>(null);
+  const [copied, setCopied] = useState(false);
+
   const refresh = () => {
     refreshMarket();
     refreshPosition();
   };
+
+  function handleOptimisticBet(side: boolean, amount: bigint) {
+    if (side) {
+      setOptimisticYes((prev) => (prev ?? market!.totalYes) + amount);
+    } else {
+      setOptimisticNo((prev) => (prev ?? market!.totalNo) + amount);
+    }
+  }
+
+  function shareMarket() {
+    navigator.clipboard.writeText(window.location.href).then(() => {
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    });
+  }
 
   if (isLoading) {
     return (
@@ -51,26 +76,74 @@ export default function MarketDetailPage() {
     );
   }
 
-  const odds = impliedOdds(market.totalYes, market.totalNo);
-  const total = market.totalYes + market.totalNo;
+  // Merge optimistic values so every downstream component sees updated numbers
+  const displayMarket = {
+    ...market,
+    totalYes: optimisticYes ?? market.totalYes,
+    totalNo: optimisticNo ?? market.totalNo,
+  };
+
+  const odds = impliedOdds(displayMarket.totalYes, displayMarket.totalNo);
+  const total = displayMarket.totalYes + displayMarket.totalNo;
   const isResolved = market.status === "Resolved";
-  const days = Math.max(0, Math.ceil((market.endTime - Date.now()) / 86_400_000));
+  const days = Math.max(
+    0,
+    Math.ceil((market.endTime - Date.now()) / 86_400_000),
+  );
 
   return (
     <motion.div
-      className="container-page pt-10"
+      className="container-page pb-20 pt-10"
       initial={{ opacity: 0, y: 8 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
-      <Link
-        href="/markets"
-        className="text-xs text-text-muted hover:text-text"
-      >
-        ← All markets
-      </Link>
-
-      {fromMock && <MockBanner />}
+      <div className="flex items-center justify-between">
+        <Link href="/markets" className="text-xs text-text-muted hover:text-text">
+          ← All markets
+        </Link>
+        <button
+          onClick={shareMarket}
+          className="flex items-center gap-1.5 text-xs text-text-dim transition hover:text-text"
+          title="Copy link"
+        >
+          {copied ? (
+            <>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <path
+                  d="M2 6.5l3 3 6-6"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+              Copied!
+            </>
+          ) : (
+            <>
+              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
+                <rect
+                  x="4.5"
+                  y="1.5"
+                  width="7"
+                  height="7"
+                  rx="1.5"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                />
+                <path
+                  d="M8.5 8.5v2a1 1 0 0 1-1 1h-6a1 1 0 0 1-1-1v-6a1 1 0 0 1 1-1h2"
+                  stroke="currentColor"
+                  strokeWidth="1.3"
+                  strokeLinecap="round"
+                />
+              </svg>
+              Share
+            </>
+          )}
+        </button>
+      </div>
 
       <header className="mt-4 grid gap-6 lg:grid-cols-[1fr,auto] lg:items-end">
         <div className="max-w-3xl">
@@ -97,15 +170,22 @@ export default function MarketDetailPage() {
             {new Date(market.endTime).toLocaleString()}
           </p>
         </div>
+
         <div className="flex items-center gap-6">
           <PoolDonut yesPct={odds.yes} size={148} thickness={14} />
           <div>
             <div className="text-xs uppercase tracking-wider text-text-dim">
               Total pool
             </div>
-            <div className="mt-1 font-display text-4xl tabular-nums tracking-tight text-text">
+            <motion.div
+              key={String(total)}
+              className="mt-1 font-display text-4xl tabular-nums tracking-tight text-text"
+              initial={{ scale: 1.08, color: "#7C3AED" }}
+              animate={{ scale: 1, color: "#F5F5F7" }}
+              transition={{ duration: 0.4 }}
+            >
               {fmtPot(total)}
-            </div>
+            </motion.div>
             <div className="font-mono text-xs text-text-muted">POT</div>
           </div>
         </div>
@@ -123,10 +203,19 @@ export default function MarketDetailPage() {
               </span>
             </div>
             <div className="mt-3">
-              <OddsChart currentYesPct={odds.yes} seed={market.id} height={180} />
+              <OddsChart
+                currentYesPct={odds.yes}
+                seed={market.id}
+                height={180}
+              />
             </div>
             <div className="mt-2 flex justify-between text-[10px] text-text-dim">
-              <span>created · {new Date(market.createdAt || market.endTime - 7 * 86_400_000).toLocaleDateString()}</span>
+              <span>
+                created ·{" "}
+                {new Date(
+                  market.createdAt || market.endTime - 7 * 86_400_000,
+                ).toLocaleDateString()}
+              </span>
               <span>now</span>
             </div>
           </div>
@@ -136,10 +225,11 @@ export default function MarketDetailPage() {
 
         <div className="space-y-6">
           <BetPanel
-            market={market}
+            market={displayMarket}
             position={position}
             hasClaimed={false}
             onChange={refresh}
+            onOptimisticBet={handleOptimisticBet}
           />
 
           <div className="card p-6 text-xs text-text-muted">
@@ -151,13 +241,13 @@ export default function MarketDetailPage() {
                 label="YES"
                 tone="success"
                 pct={odds.yes}
-                amount={market.totalYes}
+                amount={displayMarket.totalYes}
               />
               <Bar
                 label="NO"
                 tone="danger"
                 pct={odds.no}
-                amount={market.totalNo}
+                amount={displayMarket.totalNo}
               />
             </div>
             <div className="mt-4 grid grid-cols-2 gap-4 border-t border-border pt-4">
@@ -195,9 +285,8 @@ function Bar({
       <div className="mt-1 h-1.5 w-full overflow-hidden rounded-full bg-bg-subtle">
         <motion.div
           className={`h-full ${fill}`}
-          initial={{ width: 0 }}
           animate={{ width: `${Math.max(pct, 4)}%` }}
-          transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+          transition={{ duration: 0.5, ease: [0.16, 1, 0.3, 1] }}
         />
       </div>
     </div>
@@ -210,13 +299,5 @@ function Stat({ k, v }: { k: string; v: string }) {
       <div className="text-text-dim">{k}</div>
       <div className="mt-0.5 text-text">{v}</div>
     </div>
-  );
-}
-
-function MockBanner() {
-  return (
-    <p className="mt-4 rounded-md border border-warning/30 bg-warning/5 px-4 py-2 text-xs text-warning">
-      mock mode — deploy contracts to see live data
-    </p>
   );
 }
