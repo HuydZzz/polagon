@@ -7,51 +7,55 @@ import { useReputation } from "@/lib/hooks";
 import { fmtPot, pot, shortAddr } from "@/lib/format";
 import { HexBadge } from "@/components/HexBadge";
 
-// Mock prediction history shown for the demo account
-const DEMO_HISTORY = [
+const now = Date.now();
+const day = 86_400_000;
+
+// Open positions the demo user currently holds
+const DEMO_POSITIONS = [
   {
-    id: 9,
-    question: "Will Polkadot JAM upgrade launch on mainnet before Q3 2026?",
-    side: true,
-    stake: pot(500),
-    result: "win" as const,
-    payout: pot(820),
-  },
-  {
-    id: 4,
-    question: "Will the Lakers make the 2026 NBA Finals?",
-    side: false,
-    stake: pot(150),
-    result: "win" as const,
-    payout: pot(248),
-  },
-  {
-    id: 1,
+    marketId: 1,
     question: "Will Portaldot mainnet launch before Q4 2026?",
     side: true,
     stake: pot(200),
-    result: "open" as const,
-    payout: null,
+    endTime: now + 120 * day,
   },
   {
-    id: 5,
-    question: "Will OpenAI release a new flagship model before Demo Day?",
+    marketId: 5,
+    question: "Will OpenAI release a new flagship model before Demo Day (May 31)?",
     side: false,
     stake: pot(100),
-    result: "open" as const,
-    payout: null,
+    endTime: now + 27 * day,
   },
   {
-    id: 0,
+    marketId: 0,
     question: "Will BTC close above $200,000 on December 31, 2026?",
     side: true,
     stake: pot(300),
-    result: "open" as const,
-    payout: null,
+    endTime: now + 60 * day,
   },
 ];
 
-// Mock stats for the demo account (matches MOCK_LEADERBOARD rank 1)
+// Settled markets
+const DEMO_SETTLED = [
+  {
+    marketId: 9,
+    question: "Will Polkadot JAM upgrade launch on mainnet before Q3 2026?",
+    side: true,
+    stake: pot(500),
+    outcome: true,
+    payout: pot(820),
+  },
+  {
+    marketId: 4,
+    question: "Will the Lakers make the 2026 NBA Finals?",
+    side: false,
+    stake: pot(150),
+    outcome: false,
+    payout: pot(248),
+  },
+];
+
+// Demo account full stats (matches MOCK_LEADERBOARD rank 1)
 const DEMO_STATS = {
   totalPredictions: 52,
   correctPredictions: 43,
@@ -68,12 +72,9 @@ export default function ProfilePage() {
   const { active, connect, isConnecting, isDemoMode } = useWallet();
   const { data: liveStats } = useReputation(active?.address);
 
-  // In demo mode use the mock stats so the profile looks populated
   const stats = isDemoMode ? DEMO_STATS : liveStats;
-
   const score = stats?.score ?? 0;
   const accuracy = stats ? stats.accuracyBps / 100 : 0;
-  const showHistory = isDemoMode && active;
 
   return (
     <motion.div
@@ -88,16 +89,25 @@ export default function ProfilePage() {
         Earned, never bought.
       </p>
 
+      {/* ── Score card ── */}
       <div className="card relative mt-8 overflow-hidden p-8 sm:p-10">
         <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand/10 via-transparent to-accent/5" />
         <div className="grid items-center gap-8 sm:grid-cols-[auto,1fr]">
           <HexBadge score={score} accuracyPct={accuracy} size={156} />
           <div>
             <div className="text-xs uppercase tracking-wider text-text-muted">
-              {active ? (isDemoMode ? "Demo account" : "Connected") : "Wallet"}
+              {active
+                ? isDemoMode
+                  ? "Demo account"
+                  : "Connected"
+                : "Wallet"}
             </div>
             <div className="mt-1 font-display text-3xl text-text">
-              {active ? (isDemoMode ? "Demo User" : shortAddr(active.address)) : "—"}
+              {active
+                ? isDemoMode
+                  ? "Demo User"
+                  : shortAddr(active.address)
+                : "—"}
             </div>
             {active ? (
               <p className="mt-3 text-sm text-text-muted">
@@ -106,20 +116,19 @@ export default function ProfilePage() {
                   : "No predictions yet — go bet on a market and your score appears here."}
               </p>
             ) : (
-              <div className="mt-4 flex flex-wrap gap-2">
-                <button
-                  onClick={() => void connect()}
-                  className="btn-primary"
-                  disabled={isConnecting}
-                >
-                  {isConnecting ? "Connecting…" : "Connect wallet"}
-                </button>
-              </div>
+              <button
+                onClick={() => void connect()}
+                className="btn-primary mt-4"
+                disabled={isConnecting}
+              >
+                {isConnecting ? "Connecting…" : "Connect wallet"}
+              </button>
             )}
           </div>
         </div>
       </div>
 
+      {/* ── Stats grid ── */}
       <div className="mt-6 grid gap-3 sm:grid-cols-3">
         <Stat
           k="Accuracy"
@@ -135,12 +144,11 @@ export default function ProfilePage() {
           v={stats ? String(stats.totalPredictions) : "—"}
         />
         <Stat
-          k="Best streak"
-          v={stats ? `${stats.bestStreak} 🔥` : "—"}
-          tone={stats && stats.bestStreak >= 3 ? "success" : "neutral"}
+          k="Streak"
+          v={stats && stats.currentStreak > 0 ? `${stats.currentStreak} 🔥` : "—"}
+          tone={stats && stats.currentStreak >= 3 ? "success" : "neutral"}
         />
       </div>
-
       {stats && stats.totalPredictions > 0 && (
         <div className="mt-3 grid gap-3 sm:grid-cols-2">
           <Stat k="Total staked" v={`${fmtPot(stats.totalStaked)} POT`} />
@@ -152,11 +160,75 @@ export default function ProfilePage() {
         </div>
       )}
 
-      {/* ── Prediction history ── */}
-      {showHistory && (
+      {/* ── Open Positions ── */}
+      {isDemoMode && active && (
         <section className="mt-10">
+          <div className="mb-3 flex items-center justify-between">
+            <h2 className="text-xs uppercase tracking-wider text-text-muted">
+              Open positions
+            </h2>
+            <span className="pill border-success/30 bg-success/10 text-success">
+              <span className="h-1.5 w-1.5 rounded-full bg-success" />
+              {DEMO_POSITIONS.length} active
+            </span>
+          </div>
+          <div className="space-y-2">
+            {DEMO_POSITIONS.map((p, i) => {
+              const daysLeft = Math.max(
+                0,
+                Math.ceil((p.endTime - Date.now()) / 86_400_000),
+              );
+              return (
+                <motion.div
+                  key={p.marketId}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.06 * i, duration: 0.2 }}
+                >
+                  <Link
+                    href={`/markets/${p.marketId}`}
+                    className="card group flex items-center justify-between gap-4 p-4 transition hover:border-brand/40"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-1 text-sm text-text group-hover:text-brand-300">
+                        {p.question}
+                      </p>
+                      <p className="mt-1 text-xs text-text-dim">
+                        {daysLeft === 0 ? "Closes today" : `${daysLeft}d to resolve`}
+                      </p>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-3">
+                      <div className="text-right">
+                        <div className="font-mono text-xs text-text-muted">
+                          {fmtPot(p.stake)} POT
+                        </div>
+                      </div>
+                      <span
+                        className={`pill shrink-0 ${
+                          p.side
+                            ? "border-success/30 bg-success/10 text-success"
+                            : "border-danger/30 bg-danger/10 text-danger"
+                        }`}
+                      >
+                        {p.side ? "YES" : "NO"}
+                      </span>
+                      <span className="text-xs text-text-dim group-hover:text-text">
+                        →
+                      </span>
+                    </div>
+                  </Link>
+                </motion.div>
+              );
+            })}
+          </div>
+        </section>
+      )}
+
+      {/* ── Settled / History ── */}
+      {isDemoMode && active && (
+        <section className="mt-8">
           <h2 className="mb-3 text-xs uppercase tracking-wider text-text-muted">
-            Recent predictions
+            Settled
           </h2>
           <div className="card overflow-hidden">
             <table className="w-full text-sm">
@@ -168,64 +240,61 @@ export default function ProfilePage() {
                     Stake
                   </th>
                   <th className="px-4 py-3 text-right">Result</th>
-                  <th className="hidden px-4 py-3 text-right md:table-cell">
-                    Payout
-                  </th>
+                  <th className="px-4 py-3 text-right">Payout</th>
                 </tr>
               </thead>
               <tbody>
-                {DEMO_HISTORY.map((h, i) => (
-                  <motion.tr
-                    key={h.id}
-                    className="border-b border-border/50 hover:bg-bg-subtle/50"
-                    initial={{ opacity: 0, x: -8 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.05 * i, duration: 0.2 }}
-                  >
-                    <td className="px-4 py-3">
-                      <Link
-                        href={`/markets/${h.id}`}
-                        className="line-clamp-1 text-xs text-text hover:text-brand-300"
-                      >
-                        {h.question}
-                      </Link>
-                    </td>
-                    <td className="px-4 py-3 text-center">
-                      <span
-                        className={`pill text-[10px] ${
-                          h.side
-                            ? "border-success/30 bg-success/10 text-success"
-                            : "border-danger/30 bg-danger/10 text-danger"
-                        }`}
-                      >
-                        {h.side ? "YES" : "NO"}
-                      </span>
-                    </td>
-                    <td className="hidden px-4 py-3 text-right font-mono text-xs text-text-muted sm:table-cell">
-                      {fmtPot(h.stake)} POT
-                    </td>
-                    <td className="px-4 py-3 text-right">
-                      {h.result === "win" ? (
-                        <span className="text-xs font-medium text-success">
-                          Win
+                {DEMO_SETTLED.map((h, i) => {
+                  const won = h.side === h.outcome;
+                  return (
+                    <motion.tr
+                      key={h.marketId}
+                      className="border-b border-border/50 last:border-0 hover:bg-bg-subtle/50"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      transition={{ delay: 0.1 + 0.06 * i, duration: 0.2 }}
+                    >
+                      <td className="px-4 py-3">
+                        <Link
+                          href={`/markets/${h.marketId}`}
+                          className="line-clamp-1 text-xs text-text hover:text-brand-300"
+                        >
+                          {h.question}
+                        </Link>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span
+                          className={`pill text-[10px] ${
+                            h.side
+                              ? "border-success/30 bg-success/10 text-success"
+                              : "border-danger/30 bg-danger/10 text-danger"
+                          }`}
+                        >
+                          {h.side ? "YES" : "NO"}
                         </span>
-                      ) : h.result === "loss" ? (
-                        <span className="text-xs text-danger">Loss</span>
-                      ) : (
-                        <span className="text-xs text-text-dim">Pending</span>
-                      )}
-                    </td>
-                    <td className="hidden px-4 py-3 text-right font-mono text-xs md:table-cell">
-                      {h.payout != null ? (
-                        <span className="text-success">
-                          +{fmtPot(h.payout)} POT
+                      </td>
+                      <td className="hidden px-4 py-3 text-right font-mono text-xs text-text-muted sm:table-cell">
+                        {fmtPot(h.stake)} POT
+                      </td>
+                      <td className="px-4 py-3 text-right">
+                        <span
+                          className={`text-xs font-medium ${won ? "text-success" : "text-danger"}`}
+                        >
+                          {won ? "Win" : "Loss"}
                         </span>
-                      ) : (
-                        <span className="text-text-dim">—</span>
-                      )}
-                    </td>
-                  </motion.tr>
-                ))}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-xs">
+                        {won ? (
+                          <span className="text-success">
+                            +{fmtPot(h.payout)} POT
+                          </span>
+                        ) : (
+                          <span className="text-text-dim">—</span>
+                        )}
+                      </td>
+                    </motion.tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -265,7 +334,9 @@ function Stat({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
-      <div className="text-xs uppercase tracking-wider text-text-muted">{k}</div>
+      <div className="text-xs uppercase tracking-wider text-text-muted">
+        {k}
+      </div>
       <div className="mt-1 font-display text-2xl tabular-nums">{v}</div>
     </motion.div>
   );

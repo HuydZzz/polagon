@@ -18,19 +18,19 @@ export default function MarketDetailPage() {
   const id = Number.isFinite(idNum) ? idNum : undefined;
   const { active } = useWallet();
 
-  const {
-    data: market,
-    isLoading,
-    refresh: refreshMarket,
-  } = useMarket(id);
-  const { data: position, refresh: refreshPosition } = usePosition(
+  const { data: market, isLoading, refresh: refreshMarket } = useMarket(id);
+  const { data: chainPosition, refresh: refreshPosition } = usePosition(
     id,
     active?.address,
   );
 
-  // Optimistic pool state — updated immediately after a successful mock bet
+  // Optimistic pool + position state — updated immediately after a mock/live bet
   const [optimisticYes, setOptimisticYes] = useState<bigint | null>(null);
   const [optimisticNo, setOptimisticNo] = useState<bigint | null>(null);
+  const [localPosition, setLocalPosition] = useState<{
+    yes: bigint;
+    no: bigint;
+  }>({ yes: 0n, no: 0n });
   const [copied, setCopied] = useState(false);
 
   const refresh = () => {
@@ -44,6 +44,10 @@ export default function MarketDetailPage() {
     } else {
       setOptimisticNo((prev) => (prev ?? market!.totalNo) + amount);
     }
+    setLocalPosition((prev) => ({
+      yes: prev.yes + (side ? amount : 0n),
+      no: prev.no + (!side ? amount : 0n),
+    }));
   }
 
   function shareMarket() {
@@ -66,7 +70,10 @@ export default function MarketDetailPage() {
   if (!market || id == null) {
     return (
       <div className="container-page pt-10">
-        <Link href="/markets" className="text-xs text-text-muted hover:text-text">
+        <Link
+          href="/markets"
+          className="text-xs text-text-muted hover:text-text"
+        >
           ← All markets
         </Link>
         <div className="card mt-6 px-6 py-12 text-center">
@@ -76,7 +83,12 @@ export default function MarketDetailPage() {
     );
   }
 
-  // Merge optimistic values so every downstream component sees updated numbers
+  // Merge chain position + optimistic local bets placed this session
+  const displayPosition = {
+    yes: (chainPosition?.yes ?? 0n) + localPosition.yes,
+    no: (chainPosition?.no ?? 0n) + localPosition.no,
+  };
+
   const displayMarket = {
     ...market,
     totalYes: optimisticYes ?? market.totalYes,
@@ -98,14 +110,17 @@ export default function MarketDetailPage() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.25 }}
     >
+      {/* ── Top bar ── */}
       <div className="flex items-center justify-between">
-        <Link href="/markets" className="text-xs text-text-muted hover:text-text">
+        <Link
+          href="/markets"
+          className="text-xs text-text-muted hover:text-text"
+        >
           ← All markets
         </Link>
         <button
           onClick={shareMarket}
           className="flex items-center gap-1.5 text-xs text-text-dim transition hover:text-text"
-          title="Copy link"
         >
           {copied ? (
             <>
@@ -145,6 +160,7 @@ export default function MarketDetailPage() {
         </button>
       </div>
 
+      {/* ── Header ── */}
       <header className="mt-4 grid gap-6 lg:grid-cols-[1fr,auto] lg:items-end">
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
@@ -191,7 +207,44 @@ export default function MarketDetailPage() {
         </div>
       </header>
 
-      <section className="mt-10 grid gap-6 lg:grid-cols-[2fr,1fr]">
+      {/* ── My position banner (shown after bet) ── */}
+      {(displayPosition.yes > 0n || displayPosition.no > 0n) && (
+        <motion.div
+          initial={{ opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.3 }}
+          className="mt-5 flex items-center justify-between rounded-lg border border-brand/30 bg-brand/8 px-5 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <span className="h-2 w-2 rounded-full bg-brand" />
+            <span className="text-sm text-text">
+              Your position:{" "}
+              {displayPosition.yes > 0n && (
+                <span className="font-mono font-medium text-success">
+                  {fmtPot(displayPosition.yes)} POT YES
+                </span>
+              )}
+              {displayPosition.yes > 0n && displayPosition.no > 0n && (
+                <span className="text-text-dim"> · </span>
+              )}
+              {displayPosition.no > 0n && (
+                <span className="font-mono font-medium text-danger">
+                  {fmtPot(displayPosition.no)} POT NO
+                </span>
+              )}
+            </span>
+          </div>
+          <Link
+            href="/profile"
+            className="text-xs text-brand-300 hover:text-brand-200"
+          >
+            View all positions →
+          </Link>
+        </motion.div>
+      )}
+
+      {/* ── Main content ── */}
+      <section className="mt-8 grid gap-6 lg:grid-cols-[2fr,1fr]">
         <div className="space-y-6">
           <div className="card p-6">
             <div className="flex items-center justify-between">
@@ -226,7 +279,7 @@ export default function MarketDetailPage() {
         <div className="space-y-6">
           <BetPanel
             market={displayMarket}
-            position={position}
+            position={displayPosition}
             hasClaimed={false}
             onChange={refresh}
             onOptimisticBet={handleOptimisticBet}
