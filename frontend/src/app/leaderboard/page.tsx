@@ -80,8 +80,8 @@ export default function LeaderboardPage() {
 
       {/* ── Ranks 4–10 table ── */}
       <section className="mt-10">
-        <div className="card overflow-hidden">
-          <table className="w-full text-sm">
+        <div className="card overflow-x-auto">
+          <table className="w-full min-w-[520px] text-sm">
             <thead>
               <tr className="border-b border-border text-xs uppercase tracking-wider text-text-muted">
                 <th className="px-5 py-3 text-left">Rank</th>

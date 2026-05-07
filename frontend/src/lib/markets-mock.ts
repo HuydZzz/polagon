@@ -133,3 +133,41 @@ export const MOCK_MARKETS: Market[] = [
     createdAt: now - 30 * day,
   },
 ];
+
+// Markets created during this browser session (demo/mock mode only)
+export const EXTRA_MOCK_MARKETS: Market[] = [];
+let _nextId = 100;
+
+export function addMockMarket(
+  question: string,
+  endTime: number,
+  creator: string,
+  resolver: string,
+): Market {
+  const market: Market = {
+    id: _nextId++,
+    question,
+    category: inferCategory(question),
+    creator: creator.slice(0, 6) + "…" + creator.slice(-4),
+    resolver: resolver.slice(0, 6) + "…" + resolver.slice(-4),
+    endTime,
+    totalYes: 0n,
+    totalNo: 0n,
+    status: "Open",
+    createdAt: Date.now(),
+  };
+  EXTRA_MOCK_MARKETS.unshift(market); // newest first
+  return market;
+}
+
+export function inferCategory(question: string): string {
+  const s = question.toLowerCase();
+  if (/btc|bitcoin|eth|ethereum|crypto|sol|token|defi|nft/.test(s)) return "Crypto";
+  if (/portaldot|polkadot|ink!|substrate|\bdot\b|parachain|jam/.test(s)) return "Portaldot";
+  if (/openai|gpt|llm|anthropic|gemini|\bai\b|artificial|claude/.test(s)) return "AI";
+  if (/trump|biden|election|president|senate|congress|parliament|vote/.test(s)) return "Politics";
+  if (/\bfed\b|interest rate|inflation|gdp|recession|economy/.test(s)) return "Macro";
+  if (/apple|google|microsoft|meta|amazon|tesla|nvidia|tech/.test(s)) return "Tech";
+  if (/nba|nfl|mlb|soccer|football|basketball|sports|champion|cup|finals/.test(s)) return "Sports";
+  return "General";
+}

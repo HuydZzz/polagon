@@ -18,6 +18,7 @@ export default function Home() {
       <Hero />
       <MarketsTicker />
       <ThreeLayers />
+      <HowItWorks />
       <NumbersStrip />
       <Cta />
     </div>
@@ -205,6 +206,76 @@ function ThreeLayers() {
             </Link>
           </motion.article>
         ))}
+      </div>
+    </section>
+  );
+}
+
+function HowItWorks() {
+  const steps = [
+    {
+      n: "01",
+      title: "Create or find a market",
+      desc: "Anyone posts a binary YES/NO question with a deadline and a resolver. One POT creation fee prevents spam.",
+    },
+    {
+      n: "02",
+      title: "Stake POT on your prediction",
+      desc: "Choose YES or NO and lock any amount of POT. Funds are escrowed in the contract — no counterparty needed.",
+    },
+    {
+      n: "03",
+      title: "Resolver calls the outcome",
+      desc: "After the deadline the designated resolver calls resolve(). The losing pool is split proportionally to all winners.",
+    },
+    {
+      n: "04",
+      title: "Claim · Score updates",
+      desc: "Winners call claim() to receive their payout. Every prediction — win or loss — permanently updates your Polagon Score.",
+    },
+  ];
+
+  return (
+    <section className="mt-28 sm:mt-36">
+      <h2 className="font-display text-3xl tracking-tight sm:text-4xl">
+        From question to payout in four steps.
+      </h2>
+      <p className="mt-3 max-w-2xl text-text-muted">
+        No KYC, no middleman, no trust required — just Ink! contracts running
+        natively on Portaldot.
+      </p>
+
+      <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        {steps.map((step, i) => (
+          <motion.div
+            key={step.n}
+            className="card relative overflow-hidden p-6"
+            initial={{ opacity: 0, y: 16 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, margin: "-5%" }}
+            transition={{ duration: 0.4, delay: 0.07 * i }}
+          >
+            <div className="absolute inset-0 -z-10 bg-gradient-to-br from-brand/10 to-transparent opacity-0 transition group-hover:opacity-100" />
+            <div className="font-mono text-3xl font-bold text-brand/20">
+              {step.n}
+            </div>
+            <h3 className="mt-4 font-display text-lg leading-snug">
+              {step.title}
+            </h3>
+            <p className="mt-2 text-sm leading-relaxed text-text-muted">
+              {step.desc}
+            </p>
+          </motion.div>
+        ))}
+      </div>
+
+      {/* connector line (desktop) */}
+      <div className="mt-4 hidden items-center justify-center gap-0 lg:flex">
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
+        <span className="mx-4 text-xs text-text-dim">
+          Powered by Ink! 5 · Portaldot native
+        </span>
+        <div className="h-px flex-1 bg-gradient-to-r from-transparent via-brand/30 to-transparent" />
       </div>
     </section>
   );

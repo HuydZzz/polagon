@@ -7,6 +7,7 @@ import { useNotify } from "@/lib/notify";
 import { useTx } from "@/lib/useTx";
 import { txCreateMarket } from "@/lib/contracts";
 import { isChainWired } from "@/lib/env";
+import { addMockMarket } from "@/lib/markets-mock";
 
 const ONE_POT = 10n ** 12n;
 
@@ -15,6 +16,7 @@ export default function CreateMarketPage() {
   const { active } = useWallet();
   const { notify } = useNotify();
   const { isPending, submit } = useTx();
+  const [mockPending, setMockPending] = useState(false);
 
   const [question, setQuestion] = useState("");
   const [endLocal, setEndLocal] = useState(defaultEndsAt());
@@ -23,6 +25,7 @@ export default function CreateMarketPage() {
 
   const effectiveResolver = resolver.trim() || active?.address || "";
   const endTimeMs = useMemo(() => new Date(endLocal).getTime(), [endLocal]);
+  const pending = isPending || mockPending;
 
   function validate(): boolean {
     const e: Record<string, string> = {};
@@ -42,14 +45,26 @@ export default function CreateMarketPage() {
       notify({ kind: "error", title: "Connect a wallet first" });
       return;
     }
+
     if (!isChainWired) {
+      setMockPending(true);
+      await new Promise((r) => setTimeout(r, 1100));
+      setMockPending(false);
+      const market = addMockMarket(
+        question.trim(),
+        endTimeMs,
+        effectiveResolver,
+        effectiveResolver,
+      );
       notify({
-        kind: "info",
-        title: "Mock mode",
-        body: "Run `make deploy` to enable on-chain market creation.",
+        kind: "success",
+        title: "Market created!",
+        body: `"${question.trim().slice(0, 60)}…" is now live.`,
       });
+      router.push(`/markets/${market.id}`);
       return;
     }
+
     try {
       const tx = await txCreateMarket(
         question.trim(),
@@ -68,7 +83,7 @@ export default function CreateMarketPage() {
   }
 
   return (
-    <div className="container-page max-w-2xl pt-10">
+    <div className="container-page max-w-2xl pb-16 pt-10">
       <h1 className="font-display text-4xl tracking-tight">Create a market</h1>
       <p className="mt-2 text-text-muted">
         Pay 1 POT to spin up a market. The fee deters spam; the rest of the
@@ -78,34 +93,35 @@ export default function CreateMarketPage() {
       <form
         onSubmit={(e) => {
           e.preventDefault();
-          onSubmit();
+          void onSubmit();
         }}
         className="card mt-8 space-y-5 p-6"
       >
-        <Field
-          label="Question"
-          hint="Yes/No, ≤280 chars."
-          error={errors.question}
-        >
+        <Field label="Question" hint="Binary YES/NO · max 280 chars." error={errors.question}>
           <input
             type="text"
             value={question}
             onChange={(e) => setQuestion(e.target.value)}
             placeholder="Will BTC close above $200,000 on Dec 31, 2026?"
-            className="w-full rounded-md border border-border bg-bg-subtle px-3 py-2.5 text-sm placeholder:text-text-dim focus:border-brand"
+            className="w-full rounded-md border border-border bg-bg-subtle px-3 py-2.5 text-sm placeholder:text-text-dim focus:border-brand focus:outline-none"
             maxLength={290}
           />
-          <div className="mt-1 text-right font-mono text-[10px] text-text-dim">
-            {question.length}/280
+          <div className="mt-1 flex items-center justify-between">
+            <span className="text-[10px] text-text-dim">
+              Category auto-detected from your question
+            </span>
+            <span className="text-right font-mono text-[10px] text-text-dim">
+              {question.length}/280
+            </span>
           </div>
         </Field>
 
-        <Field label="Ends at (your local time)" error={errors.end}>
+        <Field label="Closes at (your local time)" error={errors.end}>
           <input
             type="datetime-local"
             value={endLocal}
             onChange={(e) => setEndLocal(e.target.value)}
-            className="w-full rounded-md border border-border bg-bg-subtle px-3 py-2.5 text-sm focus:border-brand"
+            className="w-full rounded-md border border-border bg-bg-subtle px-3 py-2.5 text-sm focus:border-brand focus:outline-none"
           />
         </Field>
 
@@ -118,33 +134,53 @@ export default function CreateMarketPage() {
             type="text"
             value={resolver}
             onChange={(e) => setResolver(e.target.value)}
-            placeholder={active?.address ?? "5Gr…ax8u (your wallet)"}
-            className="w-full rounded-md border border-border bg-bg-subtle px-3 py-2.5 font-mono text-sm placeholder:text-text-dim focus:border-brand"
+            placeholder={active?.address ?? "5Gr…ax8u  (defaults to your wallet)"}
+            className="w-full rounded-md border border-border bg-bg-subtle px-3 py-2.5 font-mono text-sm placeholder:text-text-dim focus:border-brand focus:outline-none"
           />
         </Field>
 
         <div className="flex items-center justify-between border-t border-border pt-4">
           <div className="text-xs text-text-muted">
-            Cost: <span className="font-mono text-text">1.0 POT</span> · Fee on
-            resolution: 2%
+            Cost:{" "}
+            <span className="font-mono text-text">1.0 POT</span>
+            {" "}·{" "}
+            Resolution fee:{" "}
+            <span className="font-mono text-text">2%</span>
           </div>
           <button
             type="submit"
             className="btn-primary"
-            disabled={isPending || !active}
+            disabled={pending || !active}
             title={!active ? "Connect a wallet first" : undefined}
           >
-            {isPending ? "Signing…" : "Sign · Create"}
+            {pending ? (
+              <span className="flex items-center gap-2">
+                <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                Creating…
+              </span>
+            ) : (
+              "Sign · Create"
+            )}
           </button>
         </div>
       </form>
 
-      {!isChainWired && (
-        <p className="mt-4 text-xs text-text-dim">
-          Mock mode — submitting just shows a hint. Run <code>make deploy</code>{" "}
-          to go live.
-        </p>
-      )}
+      {/* Quick tips */}
+      <div className="mt-6 grid gap-3 sm:grid-cols-3">
+        {[
+          { icon: "⚡", tip: "Markets go live instantly after signing." },
+          { icon: "🔒", tip: "Funds are escrowed in the contract — not your wallet." },
+          { icon: "⬡", tip: "Every prediction updates your Polagon Score." },
+        ].map((t) => (
+          <div
+            key={t.tip}
+            className="flex items-start gap-2 rounded-lg border border-border/50 bg-bg-subtle px-4 py-3 text-xs text-text-dim"
+          >
+            <span>{t.icon}</span>
+            <span>{t.tip}</span>
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
@@ -174,7 +210,6 @@ function Field({
 }
 
 function defaultEndsAt(): string {
-  // Default to 7 days from now in the user's local timezone, formatted for <input type="datetime-local">.
   const t = new Date(Date.now() + 7 * 86_400_000);
   const pad = (n: number) => String(n).padStart(2, "0");
   return `${t.getFullYear()}-${pad(t.getMonth() + 1)}-${pad(t.getDate())}T${pad(t.getHours())}:${pad(t.getMinutes())}`;

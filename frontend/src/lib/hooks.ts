@@ -20,8 +20,8 @@ import {
   listPolls,
 } from "./contracts";
 import { isChainWired, isPollsWired } from "./env";
-import { MOCK_MARKETS } from "./markets-mock";
-import { MOCK_POLLS } from "./polls-mock";
+import { EXTRA_MOCK_MARKETS, MOCK_MARKETS } from "./markets-mock";
+import { EXTRA_MOCK_POLLS, MOCK_POLLS } from "./polls-mock";
 import type { Market, Poll, ReputationStats, UserPosition } from "./types";
 
 const REFRESH_MS = 12_000;
@@ -51,7 +51,7 @@ export function useMarkets(): ChainAware<Market[]> {
 
   if (swr.error instanceof ChainNotWiredError || (swr.error && !isChainWired)) {
     return {
-      data: fromMockSafe(() => MOCK_MARKETS),
+      data: fromMockSafe(() => [...EXTRA_MOCK_MARKETS, ...MOCK_MARKETS]),
       isLoading: false,
       error: undefined,
       fromMock: true,
@@ -81,7 +81,9 @@ export function useMarket(id: number | undefined): ChainAware<Market> {
 
   if (swr.error instanceof ChainNotWiredError || (swr.error && !isChainWired)) {
     return {
-      data: id != null ? MOCK_MARKETS.find((m) => m.id === id) : undefined,
+      data: id != null
+        ? [...EXTRA_MOCK_MARKETS, ...MOCK_MARKETS].find((m) => m.id === id)
+        : undefined,
       isLoading: false,
       error: undefined,
       fromMock: true,
@@ -144,7 +146,7 @@ export function usePolls(): ChainAware<Poll[]> {
   );
   if (swr.error instanceof ChainNotWiredError || (swr.error && !isPollsWired)) {
     return {
-      data: MOCK_POLLS,
+      data: [...EXTRA_MOCK_POLLS, ...MOCK_POLLS],
       isLoading: false,
       error: undefined,
       fromMock: true,
@@ -173,7 +175,9 @@ export function usePoll(id: number | undefined): ChainAware<Poll> {
   );
   if (swr.error instanceof ChainNotWiredError || (swr.error && !isPollsWired)) {
     return {
-      data: id != null ? MOCK_POLLS.find((p) => p.id === id) : undefined,
+      data: id != null
+        ? [...EXTRA_MOCK_POLLS, ...MOCK_POLLS].find((p) => p.id === id)
+        : undefined,
       isLoading: false,
       error: undefined,
       fromMock: true,

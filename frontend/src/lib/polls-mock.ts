@@ -1,5 +1,30 @@
 import type { Poll } from "./types";
 
+export const EXTRA_MOCK_POLLS: Poll[] = [];
+let _nextPollId = 100;
+
+export function addMockPoll(
+  question: string,
+  options: string[],
+  endTime: number,
+  creator: string,
+): Poll {
+  const poll: Poll = {
+    id: _nextPollId++,
+    question,
+    options,
+    creator: creator.slice(0, 6) + "…" + creator.slice(-4),
+    endTime,
+    votesPerOption: new Array(options.length).fill(0),
+    totalVoters: 0,
+    status: "Open",
+    createdAt: Date.now(),
+    category: "General",
+  };
+  EXTRA_MOCK_POLLS.unshift(poll);
+  return poll;
+}
+
 const now = Date.now();
 const day = 86_400_000;
 

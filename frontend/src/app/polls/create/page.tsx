@@ -7,6 +7,7 @@ import { useNotify } from "@/lib/notify";
 import { useTx } from "@/lib/useTx";
 import { txCreatePoll } from "@/lib/contracts";
 import { isPollsWired } from "@/lib/env";
+import { addMockPoll } from "@/lib/polls-mock";
 
 export default function CreatePollPage() {
   const router = useRouter();
@@ -42,11 +43,10 @@ export default function CreatePollPage() {
       return;
     }
     if (!isPollsWired) {
-      notify({
-        kind: "info",
-        title: "Mock mode",
-        body: "Run `make deploy` to enable on-chain poll creation.",
-      });
+      await new Promise((r) => setTimeout(r, 1000));
+      const poll = addMockPoll(question.trim(), cleanedOptions, endTimeMs, active.address);
+      notify({ kind: "success", title: "Poll created!", body: "Your poll is now live." });
+      router.push(`/polls/${poll.id}`);
       return;
     }
     try {
