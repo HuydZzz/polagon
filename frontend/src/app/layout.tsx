@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { Navbar } from "@/components/Navbar";
 import { Providers } from "@/components/Providers";
+import { SiteFooter } from "@/components/SiteFooter";
 
 export const metadata: Metadata = {
   title: "Polagon — Predict. Stake. Earn reputation that follows you.",
@@ -46,23 +47,7 @@ export default function RootLayout({
           <div className="grid-fade min-h-screen">
             <Navbar />
             <main className="pb-24 pt-6">{children}</main>
-            <footer className="container-page pb-12 pt-8 text-xs text-text-dim">
-              <div className="flex flex-col items-start justify-between gap-3 border-t border-border pt-6 sm:flex-row sm:items-center">
-                <p>
-                  Polagon · open source ·{" "}
-                  <a
-                    href="https://github.com/HuydZzz/polagon"
-                    className="underline hover:text-text"
-                  >
-                    GitHub
-                  </a>
-                </p>
-                <p>
-                  Native to{" "}
-                  <span className="text-text-muted">Portaldot</span>
-                </p>
-              </div>
-            </footer>
+            <SiteFooter />
           </div>
         </Providers>
       </body>

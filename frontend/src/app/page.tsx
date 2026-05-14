@@ -338,8 +338,8 @@ function Cta() {
           <Link href="/markets" className="btn-primary">
             Explore markets
           </Link>
-          <Link href="/leaderboard" className="btn-ghost">
-            View leaderboard →
+          <Link href="/integrate" className="btn-ghost">
+            Build on PolagonScore →
           </Link>
         </div>
       </motion.div>
