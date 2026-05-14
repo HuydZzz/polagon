@@ -8,6 +8,7 @@
 
 import { ApiPromise, WsProvider } from "@polkadot/api";
 import { ContractPromise } from "@polkadot/api-contract";
+import type { WeightV2 } from "@polkadot/types/interfaces";
 import { env, isChainWired, isPollsWired } from "./env";
 
 let apiSingleton: Promise<ApiPromise> | undefined;
@@ -65,17 +66,17 @@ export async function getPolls(): Promise<ContractPromise | undefined> {
 }
 
 /** Default gas budget used for read calls. Reads don't actually charge it. */
-export function readGas(api: ApiPromise) {
+export function readGas(api: { registry: ApiPromise["registry"] }): WeightV2 {
   return api.registry.createType("WeightV2", {
     refTime: BigInt(10_000_000_000),
     proofSize: BigInt(500_000),
-  });
+  }) as WeightV2;
 }
 
 /** Default gas budget used for write calls. Generous for hackathon. */
-export function writeGas(api: ApiPromise) {
+export function writeGas(api: { registry: ApiPromise["registry"] }): WeightV2 {
   return api.registry.createType("WeightV2", {
     refTime: BigInt(50_000_000_000),
     proofSize: BigInt(1_000_000),
-  });
+  }) as WeightV2;
 }

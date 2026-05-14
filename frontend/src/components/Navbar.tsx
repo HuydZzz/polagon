@@ -55,10 +55,7 @@ export function Navbar() {
           {/* Desktop nav */}
           <nav className="hidden items-center gap-1 sm:flex">
             {NAV.map((item) => {
-              const active =
-                item.href === "/"
-                  ? pathname === "/"
-                  : pathname.startsWith(item.href);
+              const active = pathname.startsWith(item.href);
               return (
                 <Link
                   key={item.href}
@@ -135,10 +132,7 @@ export function Navbar() {
             >
               <nav className="flex flex-col gap-1">
                 {NAV.map((item) => {
-                  const active =
-                    item.href === "/"
-                      ? pathname === "/"
-                      : pathname.startsWith(item.href);
+                  const active = pathname.startsWith(item.href);
                   return (
                     <Link
                       key={item.href}
