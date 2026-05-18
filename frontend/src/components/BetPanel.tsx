@@ -16,6 +16,8 @@ interface Props {
   hasClaimed?: boolean;
   onChange?: () => void;
   onOptimisticBet?: (side: boolean, amount: bigint) => void;
+  onResolve?: (outcome: boolean) => void;
+  onClaim?: () => void;
 }
 
 export function BetPanel({
@@ -24,6 +26,8 @@ export function BetPanel({
   hasClaimed,
   onChange,
   onOptimisticBet,
+  onResolve,
+  onClaim,
 }: Props) {
   const { active } = useWallet();
   const { notify } = useNotify();
@@ -107,6 +111,7 @@ export function BetPanel({
         title: `Market resolved: ${outcome ? "YES" : "NO"}`,
         body: "Winners can now claim their payout.",
       });
+      onResolve?.(outcome);
       onChange?.();
       return;
     }
@@ -123,6 +128,28 @@ export function BetPanel({
   }
 
   async function claim() {
+    if (!isChainWired) {
+      // Mock mode: calculate payout and show success immediately
+      setMockPending(true);
+      await new Promise((r) => setTimeout(r, 900));
+      setMockPending(false);
+      const FEE_BPS = 200n;
+      const outcome = market.outcome ?? false;
+      const stake = outcome ? (position?.yes ?? 0n) : (position?.no ?? 0n);
+      const Pw = outcome ? market.totalYes : market.totalNo;
+      const Pl = outcome ? market.totalNo : market.totalYes;
+      const share = Pw > 0n ? (stake * Pl) / Pw : 0n;
+      const afterFee = (share * (10000n - FEE_BPS)) / 10000n;
+      const payout = stake + afterFee;
+      notify({
+        kind: "success",
+        title: `Claimed ${fmtPot(payout)} POT`,
+        body: "Payout sent to your wallet.",
+      });
+      onClaim?.();
+      onChange?.();
+      return;
+    }
     try {
       const tx = await txClaim(market.id);
       await submit(tx, {

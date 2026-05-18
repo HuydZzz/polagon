@@ -5,7 +5,9 @@ import type { Market } from "@/lib/types";
 export function MarketCard({ market }: { market: Market }) {
   const odds = impliedOdds(market.totalYes, market.totalNo);
   const totalPool = market.totalYes + market.totalNo;
-  const expiresIn = Math.max(0, market.endTime - Date.now());
+  const now = Date.now();
+  const expired = market.endTime < now;
+  const expiresIn = Math.max(0, market.endTime - now);
   const days = Math.floor(expiresIn / 86_400_000);
 
   return (
@@ -15,7 +17,7 @@ export function MarketCard({ market }: { market: Market }) {
     >
       <div className="flex items-start justify-between gap-2">
         <span className="pill">{market.category}</span>
-        <StatusBadge status={market.status} outcome={market.outcome} />
+        <StatusBadge status={market.status} outcome={market.outcome} expired={expired} />
       </div>
 
       <h3 className="mt-3 line-clamp-2 text-base font-medium leading-snug text-text">
@@ -31,9 +33,11 @@ export function MarketCard({ market }: { market: Market }) {
         <span>
           {market.status === "Resolved"
             ? "Resolved"
-            : days === 0
-              ? "Expires today"
-              : `${days}d left`}
+            : expired
+              ? "Awaiting resolution"
+              : days === 0
+                ? "Expires today"
+                : `${days}d left`}
         </span>
       </div>
     </Link>
@@ -62,10 +66,20 @@ function OddsBar({ odds }: { odds: { yes: number; no: number } }) {
 function StatusBadge({
   status,
   outcome,
+  expired,
 }: {
   status: Market["status"];
   outcome?: boolean;
+  expired: boolean;
 }) {
+  if (status === "Open" && expired) {
+    return (
+      <span className="pill border-warning/30 bg-warning/10 text-warning">
+        <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+        Resolving
+      </span>
+    );
+  }
   if (status === "Open") {
     return (
       <span className="pill border-success/30 bg-success/10 text-success">

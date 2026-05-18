@@ -32,6 +32,9 @@ export default function MarketDetailPage() {
     no: bigint;
   }>({ yes: 0n, no: 0n });
   const [copied, setCopied] = useState(false);
+  // Mock resolution state — tracks resolve + claim for demo flow
+  const [localResolved, setLocalResolved] = useState<{ outcome: boolean } | null>(null);
+  const [hasClaimed, setHasClaimed] = useState(false);
 
   const refresh = () => {
     refreshMarket();
@@ -93,11 +96,16 @@ export default function MarketDetailPage() {
     ...market,
     totalYes: optimisticYes ?? market.totalYes,
     totalNo: optimisticNo ?? market.totalNo,
+    // Apply local resolution override (mock mode demo flow)
+    ...(localResolved
+      ? { status: "Resolved" as const, outcome: localResolved.outcome }
+      : {}),
   };
 
   const odds = impliedOdds(displayMarket.totalYes, displayMarket.totalNo);
   const total = displayMarket.totalYes + displayMarket.totalNo;
-  const isResolved = market.status === "Resolved";
+  const isResolved = displayMarket.status === "Resolved";
+  const expired = market.endTime < Date.now();
   const days = Math.max(
     0,
     Math.ceil((market.endTime - Date.now()) / 86_400_000),
@@ -165,15 +173,21 @@ export default function MarketDetailPage() {
         <div className="max-w-3xl">
           <div className="flex flex-wrap items-center gap-2">
             <span className="pill">{market.category}</span>
-            {!isResolved && (
+            {!isResolved && !expired && (
               <span className="pill border-success/30 bg-success/5 text-success">
                 <span className="h-1.5 w-1.5 rounded-full bg-success" />
                 {days === 0 ? "Closing today" : `${days}d to resolve`}
               </span>
             )}
+            {!isResolved && expired && (
+              <span className="pill border-warning/30 bg-warning/5 text-warning">
+                <span className="h-1.5 w-1.5 rounded-full bg-warning" />
+                Awaiting resolution
+              </span>
+            )}
             {isResolved && (
               <span className="pill border-brand/30 bg-brand/10 text-brand-200">
-                Resolved · {market.outcome ? "YES" : "NO"}
+                Resolved · {displayMarket.outcome ? "YES" : "NO"}
               </span>
             )}
           </div>
@@ -280,9 +294,11 @@ export default function MarketDetailPage() {
           <BetPanel
             market={displayMarket}
             position={displayPosition}
-            hasClaimed={false}
+            hasClaimed={hasClaimed}
             onChange={refresh}
             onOptimisticBet={handleOptimisticBet}
+            onResolve={(outcome) => setLocalResolved({ outcome })}
+            onClaim={() => setHasClaimed(true)}
           />
 
           <div className="card p-6 text-xs text-text-muted">

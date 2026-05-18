@@ -13,6 +13,13 @@ const day = 86_400_000;
 // Open positions the demo user currently holds
 const DEMO_POSITIONS = [
   {
+    marketId: 10,
+    question: "Will Polagon win the Portaldot Hackathon S1 grand prize?",
+    side: true,
+    stake: pot(200),
+    endTime: now - 1 * day, // expired — awaiting resolution
+  },
+  {
     marketId: 1,
     question: "Will Portaldot mainnet launch before Q4 2026?",
     side: true,
@@ -174,6 +181,7 @@ export default function ProfilePage() {
           </div>
           <div className="space-y-2">
             {DEMO_POSITIONS.map((p, i) => {
+              const awaitingResolution = p.endTime < Date.now();
               const daysLeft = Math.max(
                 0,
                 Math.ceil((p.endTime - Date.now()) / 86_400_000),
@@ -187,14 +195,18 @@ export default function ProfilePage() {
                 >
                   <Link
                     href={`/markets/${p.marketId}`}
-                    className="card group flex items-center justify-between gap-4 p-4 transition hover:border-brand/40"
+                    className={`card group flex items-center justify-between gap-4 p-4 transition ${awaitingResolution ? "hover:border-warning/40" : "hover:border-brand/40"}`}
                   >
                     <div className="min-w-0 flex-1">
                       <p className="line-clamp-1 text-sm text-text group-hover:text-brand-300">
                         {p.question}
                       </p>
-                      <p className="mt-1 text-xs text-text-dim">
-                        {daysLeft === 0 ? "Closes today" : `${daysLeft}d to resolve`}
+                      <p className={`mt-1 text-xs ${awaitingResolution ? "text-warning" : "text-text-dim"}`}>
+                        {awaitingResolution
+                          ? "Awaiting resolution → click to resolve"
+                          : daysLeft === 0
+                            ? "Closes today"
+                            : `${daysLeft}d to resolve`}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">

@@ -21,6 +21,7 @@ import {
 } from "./contracts";
 import { isChainWired, isPollsWired } from "./env";
 import { EXTRA_MOCK_MARKETS, MOCK_MARKETS } from "./markets-mock";
+import { pot } from "./format";
 import { EXTRA_MOCK_POLLS, MOCK_POLLS } from "./polls-mock";
 import type { Market, Poll, ReputationStats, UserPosition } from "./types";
 
@@ -99,6 +100,12 @@ export function useMarket(id: number | undefined): ChainAware<Market> {
   };
 }
 
+// Demo user's pre-seeded position on market 10 (the "awaiting resolution" showcase market)
+const DEMO_ADDR = "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY";
+const DEMO_POSITIONS_MOCK: Record<number, UserPosition> = {
+  10: { yes: pot(200), no: 0n },
+};
+
 export function usePosition(
   marketId: number | undefined,
   who: string | undefined,
@@ -115,8 +122,12 @@ export function usePosition(
   );
 
   if (swr.error instanceof ChainNotWiredError || (swr.error && !isChainWired)) {
+    const mockPos =
+      who === DEMO_ADDR && marketId != null
+        ? (DEMO_POSITIONS_MOCK[marketId] ?? { yes: 0n, no: 0n })
+        : { yes: 0n, no: 0n };
     return {
-      data: { yes: 0n, no: 0n },
+      data: mockPos,
       isLoading: false,
       error: undefined,
       fromMock: true,

@@ -8,12 +8,12 @@ export const metadata: Metadata = {
   title: "Polagon — Predict. Stake. Earn reputation that follows you.",
   description:
     "Decentralized prediction markets, polls, and soulbound reputation, native to Portaldot. Built for Portaldot Mini Hackathon Season 1.",
-  metadataBase: new URL("https://polagon.app"),
+  metadataBase: new URL("https://polagon.vercel.app"),
   openGraph: {
     title: "Polagon",
     description:
       "Decentralized prediction markets, polls, and soulbound reputation, native to Portaldot.",
-    url: "https://polagon.app",
+    url: "https://polagon.vercel.app",
     siteName: "Polagon",
     type: "website",
   },

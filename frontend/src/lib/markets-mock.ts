@@ -132,6 +132,19 @@ export const MOCK_MARKETS: Market[] = [
     outcome: true,
     createdAt: now - 30 * day,
   },
+  {
+    id: 10,
+    question: "Will Polagon win the Portaldot Hackathon S1 grand prize?",
+    category: "Portaldot",
+    // Full SS58 so canResolve check works for demo wallet
+    creator: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    resolver: "5GrwvaEF5zXb26Fz9rcQpDWS57CtERHpNehXCPcNoHGKutQY",
+    endTime: now - 1 * day,
+    totalYes: pot(840),
+    totalNo: pot(120),
+    status: "Open",
+    createdAt: now - 7 * day,
+  },
 ];
 
 // Markets created during this browser session (demo/mock mode only)
