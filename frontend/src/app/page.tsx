@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useEffect, useRef } from "react";
 import {
   animate,
@@ -11,6 +12,7 @@ import {
 } from "framer-motion";
 import { MarketsTicker } from "@/components/MarketsTicker";
 import { isChainWired } from "@/lib/env";
+import { useWallet } from "@/lib/wallet";
 
 export default function Home() {
   return (
@@ -31,6 +33,14 @@ const fadeUp = {
 };
 
 function Hero() {
+  const router = useRouter();
+  const { connectDemo } = useWallet();
+
+  function startDemoTour() {
+    connectDemo();
+    router.push("/markets/10");
+  }
+
   return (
     <section className="relative pt-20 sm:pt-28">
       <div className="absolute inset-x-0 top-0 -z-10 h-[480px] bg-hex-pattern opacity-60" />
@@ -83,13 +93,32 @@ function Hero() {
         transition={{ duration: 0.55, delay: 0.18 }}
         className="mt-8 flex flex-wrap items-center gap-3"
       >
-        <Link href="/markets" className="btn-primary">
-          Explore markets
-        </Link>
-        <Link href="/create" className="btn-ghost">
-          Create your first market →
+        <button
+          type="button"
+          onClick={startDemoTour}
+          className="btn-primary group relative overflow-hidden"
+        >
+          <span className="absolute inset-0 -z-10 bg-gradient-to-r from-brand to-accent opacity-0 transition group-hover:opacity-100" />
+          <span className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white/90" />
+            Start demo tour
+          </span>
+        </button>
+        <Link href="/markets" className="btn-ghost">
+          Explore markets →
         </Link>
       </motion.div>
+
+      <motion.p
+        initial="hidden"
+        animate="visible"
+        variants={fadeUp}
+        transition={{ duration: 0.55, delay: 0.22 }}
+        className="mt-3 text-xs text-text-dim"
+      >
+        No wallet needed — the demo tour connects a sandbox account and drops
+        you into a live market awaiting resolution.
+      </motion.p>
 
       {/* Live protocol stats strip */}
       <motion.div
